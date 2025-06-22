@@ -210,3 +210,46 @@ export const getOHLCV = async (
     })
   }
 }
+
+export const getTrendingTokens = async (
+  req: Request<
+    {},
+    {},
+    {},
+    {
+      sort_by?: 'rank' | 'volume24hUSD' | 'liquidity'
+      sort_type?: 'asc' | 'desc'
+      offset?: number
+      limit?: number
+    }
+  >,
+  res: Response
+): Promise<void> => {
+  try {
+    const { sort_by, sort_type, offset, limit } = req.query
+
+    const trendingTokens = await birdEyeRequests.tokens.trendingTokens({
+      sort_by: sort_by || 'rank',
+      sort_type: sort_type || 'asc',
+      offset: offset || 0,
+      limit: limit || 20,
+    })
+
+    if (!trendingTokens.success) {
+      res.status(500).json({
+        success: false,
+        message: trendingTokens.message,
+      })
+      return
+    }
+
+    // Return the result
+    res.json(trendingTokens.data)
+  } catch (err: any) {
+    console.error('[getTokenOverview] Error:', err)
+    res.status(500).json({
+      success: false,
+      error: err.message || 'An error occurred processing your swap request',
+    })
+  }
+}

@@ -434,3 +434,25 @@ export interface BirdEyeTokenOverview {
   vSell24hChangePercent: number | null
   numberMarkets: number
 }
+
+export interface BirdEyeTrendingTokenItem {
+  address: string
+  decimals: number
+  liquidity: number
+  logoURI: string
+  name: string
+  symbol: string
+  volume24hUSD: number
+  volume24hChangePercent: number | null
+  fdv: number
+  marketcap: number
+  rank: number
+  price: number
+  price24hChangePercent: number
+}
+
+export interface BirdEyeTrendingTokens {
+  updateUnixTime: number
+  updateTime: string
+  tokens: BirdEyeTrendingTokenItem[]
+}

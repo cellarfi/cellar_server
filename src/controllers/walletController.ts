@@ -59,12 +59,7 @@ export const getWalletPortfolio = async (
 }
 
 export const getWalletHistory = async (
-  req: Request<
-    { walletAddress: string },
-    {},
-    {},
-    { includePriceChange: boolean }
-  >,
+  req: Request<{ walletAddress: string }>,
   res: Response
 ): Promise<void> => {
   try {

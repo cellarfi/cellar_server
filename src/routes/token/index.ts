@@ -3,6 +3,7 @@ import {
   getOHLCV,
   getTokenOverview,
   search,
+  getTrendingTokens,
 } from '@/controllers/tokenController'
 import { Router } from 'express'
 
@@ -12,5 +13,6 @@ router.get('/overview/:tokenAddress', getTokenOverview)
 router.get('/search', search)
 router.get('/historical-price/:tokenAddress', getHistoricalPrice)
 router.get('/ohlcv/:tokenAddress', getOHLCV)
+router.get('/trending', getTrendingTokens)
 
 export default router
