@@ -87,12 +87,16 @@ export const birdEyeDefiRequests = {
     address_type: 'token' | 'pair'
   }) => {
     try {
+      const addressToUse =
+        tokenAddress === NATIVE_SOL_MINT ? WRAPPED_SOL_MINT : tokenAddress
+
       const res = await api.get(`/history_price`, {
         params: {
-          address: tokenAddress,
+          address: addressToUse,
           type,
           time_from,
           time_to,
+          address_type,
         },
       })
 
@@ -129,9 +133,12 @@ export const birdEyeDefiRequests = {
     time_to: number
   }) => {
     try {
+      const addressToUse =
+        tokenAddress === NATIVE_SOL_MINT ? WRAPPED_SOL_MINT : tokenAddress
+
       const res = await api.get(`/ohlcv`, {
         params: {
-          address: tokenAddress,
+          address: addressToUse,
           type,
           currency,
           time_from,

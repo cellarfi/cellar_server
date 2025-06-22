@@ -1,4 +1,9 @@
-import { BirdEyeTimePeriod } from '@/types'
+import {
+  BirdEyeHistoricalPriceResponse,
+  BirdEyeTimePeriod,
+  BirdEyeTokenOHLCV,
+  BirdEyeTokenOverview,
+} from '@/types'
 import { birdEyeRequests } from '@/utils/api_requests/birdeye.request'
 import { getBirdeyeTimeParams } from '@/utils/birdeye.util'
 import { Request, Response } from 'express'
@@ -8,13 +13,13 @@ export const getTokenOverview = async (
     { tokenAddress: string },
     {},
     {},
-    { includeChart: boolean; walletAddress: string }
+    { includeLineChart: boolean; includeOHLCV: boolean }
   >,
   res: Response
 ): Promise<void> => {
   try {
     const { tokenAddress } = req.params
-    const { includeChart, walletAddress } = req.query
+    const { includeOHLCV, includeLineChart } = req.query
 
     const tokenOverview = await birdEyeRequests.tokens.tokenOverview(
       tokenAddress
@@ -28,8 +33,46 @@ export const getTokenOverview = async (
       return
     }
 
+    const data: {
+      tokenOverview: BirdEyeTokenOverview
+      ohlcv?: BirdEyeTokenOHLCV
+      lineChart?: BirdEyeHistoricalPriceResponse
+    } = {
+      tokenOverview: tokenOverview.data!,
+    }
+
+    if (includeLineChart) {
+      const params = getBirdeyeTimeParams('1H')
+      const historicalPrice = await birdEyeRequests.defi.historicalPrice({
+        tokenAddress,
+        type: '1H',
+        time_from: params.time_from,
+        time_to: params.time_to,
+        address_type: 'token',
+      })
+
+      if (historicalPrice.success) {
+        data.lineChart = historicalPrice.data
+      }
+    }
+
+    if (includeOHLCV) {
+      const params = getBirdeyeTimeParams('1H')
+      const ohlcv = await birdEyeRequests.defi.tokenOHLCV({
+        tokenAddress,
+        type: '1H',
+        currency: 'usd',
+        time_from: params.time_from,
+        time_to: params.time_to,
+      })
+
+      if (ohlcv.success) {
+        data.ohlcv = ohlcv.data
+      }
+    }
+
     // Return the result
-    res.json(tokenOverview.data)
+    res.json(data)
   } catch (err: any) {
     console.error('[getTokenOverview] Error:', err)
     res.status(500).json({
