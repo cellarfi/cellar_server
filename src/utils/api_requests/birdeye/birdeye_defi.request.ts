@@ -4,9 +4,10 @@ import {
   BirdEyeTimePeriod,
   BirdEyeTokenOHLCV,
 } from '@/types'
+import { birdEyeHeader } from '@/utils/birdeye.util'
 import { NATIVE_SOL_MINT, WRAPPED_SOL_MINT } from '@/utils/solana.util'
 import axios, { AxiosInstance } from 'axios'
-import { apiResponse, birdEyeHeader } from '../../api.helpers'
+import { apiResponse } from '../../api.helpers'
 
 const api: AxiosInstance = axios.create({
   baseURL: 'https://public-api.birdeye.so/defi',
@@ -74,7 +75,7 @@ export const birdEyeDefiRequests = {
    */
   historicalPrice: async ({
     tokenAddress,
-    type = '1m',
+    type = '1H',
     time_from,
     time_to,
     address_type = 'token',
@@ -89,7 +90,6 @@ export const birdEyeDefiRequests = {
       const res = await api.get(`/history_price`, {
         params: {
           address: tokenAddress,
-          address_type,
           type,
           time_from,
           time_to,
@@ -124,7 +124,7 @@ export const birdEyeDefiRequests = {
   }: {
     tokenAddress: string
     type: BirdEyeTimePeriod
-    currency: string
+    currency: 'usd' | 'native'
     time_from: number
     time_to: number
   }) => {

@@ -1,5 +1,4 @@
 import { ApiResponseInterface } from '@/types'
-import { Env } from './constants/Env'
 
 export const apiResponse = <D = any>(
   success: boolean,
@@ -11,10 +10,4 @@ export const apiResponse = <D = any>(
     message,
     data,
   }
-}
-
-export const birdEyeHeader = {
-  accept: 'application/json',
-  'x-chain': 'solana',
-  'X-API-KEY': Env.BIRDEYE_API_KEY,
 }

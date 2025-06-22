@@ -4,8 +4,9 @@ import {
   BirdEyeWalletPortfolio,
   BirdEyeWalletTransactionHistory,
 } from '@/types'
+import { birdEyeHeader } from '@/utils/birdeye.util'
 import axios, { AxiosInstance } from 'axios'
-import { apiResponse, birdEyeHeader } from '../../api.helpers'
+import { apiResponse } from '../../api.helpers'
 
 const api: AxiosInstance = axios.create({
   baseURL: 'https://public-api.birdeye.so',
