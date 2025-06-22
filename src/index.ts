@@ -50,8 +50,8 @@ app.get('/socket.io-status', (req, res) => {
 })
 
 // WebSocket health check endpoint - important for App Engine health checks
-app.get('/ws-health', (req, res) => {
-  res.status(200).send('WebSocket server is healthy')
+app.get('/health', (req, res) => {
+  res.status(200).send('Aktive!')
 })
 
 // Add a WebSocket status endpoint for debugging
