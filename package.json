@@ -6,7 +6,7 @@
     "start": "node dist/index.js",
     "gcp-build": "echo 'Skipping build: using pre-built dist folder'",
     "dev": "npx tsx watch src/index.ts",
-    "build": "npx tsc",
+    "build": "npx rimraf dist && npx prisma generate && npx tsc && tsc-alias",
     "test": "echo \"Error: no test specified\" && exit 1",
     "deploy": "gcloud app deploy app.yaml"
   },
@@ -72,6 +72,7 @@
     "@types/node-fetch": "^2.6.12",
     "prisma": "^6.10.1",
     "ts-node-dev": "^2.0.0",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.7.3"
   },
   "engines": {
