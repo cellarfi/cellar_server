@@ -151,9 +151,7 @@ export const getHistoricalPrice = async (
     }
 
     // Return the result
-    res.json({
-      tokenOverview: tokenOverview.data,
-    })
+    res.json(tokenOverview.data)
   } catch (err: any) {
     console.error('[raydiumSwapHandler] Error:', err)
     res.status(500).json({
@@ -199,9 +197,7 @@ export const getOHLCV = async (
     }
 
     // Return the result
-    res.json({
-      tokenOverview: tokenOverview.data,
-    })
+    res.json(tokenOverview.data)
   } catch (err: any) {
     console.error('[raydiumSwapHandler] Error:', err)
     res.status(500).json({

@@ -61,7 +61,7 @@ export const birdEyeTokensRequests = {
     limit?: number
   }) => {
     try {
-      const res = await api.get(`/trending_tokens`, {
+      const res = await api.get(`/token_trending`, {
         params: {
           sort_by,
           sort_type,
