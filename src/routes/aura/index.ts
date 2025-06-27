@@ -18,7 +18,6 @@ config()
 const router = express.Router() as any
 
 async function fetchRPC(method: string, params: any) {
-  console.log('RPC_URL', Env.RPC_URL)
   const response = await fetch(
     Env.RPC_URL || 'https://aura-mainnet.metaplex.com',
     {

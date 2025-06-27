@@ -6,7 +6,6 @@ export interface BirdEyeTokenItem {
   chainId: string
   name?: string
   symbol?: string
-  icon?: string
   logoURI?: string
   priceUsd?: number
   valueUsd?: number
