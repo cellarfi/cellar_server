@@ -7,6 +7,10 @@ export interface AddressBookEntry {
   user_id: string;
   name: string;
   address: string;
+  description?: string;
+  network?: string;
+  tags?: string[];
+  is_favorite?: boolean;
 }
 
 /**
@@ -92,6 +96,10 @@ export class AddressBookService {
         user_id: entry.user_id,
         name: entry.name,
         address: entry.address,
+        description: entry.description,
+        network: entry.network,
+        tags: entry.tags || [],
+        is_favorite: entry.is_favorite,
       },
     });
   }

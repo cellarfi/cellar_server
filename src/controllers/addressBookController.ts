@@ -1,4 +1,5 @@
 import { AddressBookService } from '@/service/addressBookService';
+import { Network, SUPPORTED_NETWORKS } from '@/utils/networks.util';
 import { Request, Response } from 'express';
 
 /**
@@ -67,13 +68,20 @@ export const createAddressBookEntry = async (
   req: Request<
     { walletAddress: string },
     {},
-    { name: string; address: string }
+    {
+      name: string;
+      address: string;
+      description?: string;
+      network?: string;
+      tags?: string[];
+      is_favorite?: boolean;
+    }
   >,
   res: Response
 ): Promise<void> => {
   try {
     const { walletAddress } = req.params;
-    const { name, address } = req.body;
+    const { name, address, description, network, tags, is_favorite } = req.body;
 
     if (!name || !address) {
       res.status(400).json({
@@ -107,10 +115,22 @@ export const createAddressBookEntry = async (
       return;
     }
 
+    if (!SUPPORTED_NETWORKS.includes(network as Network)) {
+      res.status(400).json({
+        success: false,
+        error: 'Unsupported network',
+      });
+      return;
+    }
+
     const entry = await AddressBookService.createEntry({
       user_id: walletAddress,
       name,
       address,
+      description,
+      network,
+      tags,
+      is_favorite,
     });
 
     res.status(201).json({
