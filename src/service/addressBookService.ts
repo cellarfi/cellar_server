@@ -118,6 +118,10 @@ export class AddressBookService {
       data: {
         name: entry.name,
         address: entry.address,
+        description: entry.description,
+        network: entry.network,
+        tags: entry.tags || [],
+        is_favorite: entry.is_favorite,
       },
     });
   }

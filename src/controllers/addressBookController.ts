@@ -153,15 +153,22 @@ export const updateAddressBookEntry = async (
   req: Request<
     { walletAddress: string; entryId: string },
     {},
-    { name?: string; address?: string }
+    {
+      name?: string;
+      address?: string;
+      description?: string;
+      network?: string;
+      tags?: string[];
+      is_favorite?: boolean;
+    }
   >,
   res: Response
 ): Promise<void> => {
   try {
     const { walletAddress, entryId } = req.params;
-    const { name, address } = req.body;
+    const { name, address, description, network, tags, is_favorite } = req.body;
 
-    // Check if entry exists and belongs to this user
+    // Check if entry exists for this user
     const existingEntry = await AddressBookService.getEntryById(
       walletAddress,
       entryId
@@ -203,11 +210,25 @@ export const updateAddressBookEntry = async (
       }
     }
 
-    if (!name && !address) {
+    if (
+      !name &&
+      !address &&
+      !description &&
+      !network &&
+      !tags &&
+      !is_favorite
+    ) {
       res.status(400).json({
         success: false,
-        error:
-          'At least one field (name or address) must be provided for update',
+        error: 'At least one field must be provided for update',
+      });
+      return;
+    }
+
+    if (!SUPPORTED_NETWORKS.includes(network as Network)) {
+      res.status(400).json({
+        success: false,
+        error: 'Unsupported network',
       });
       return;
     }
@@ -215,6 +236,10 @@ export const updateAddressBookEntry = async (
     const updatedEntry = await AddressBookService.updateEntry(entryId, {
       name,
       address,
+      description,
+      network,
+      tags,
+      is_favorite,
     });
 
     res.json({
