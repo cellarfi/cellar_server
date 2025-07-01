@@ -186,6 +186,7 @@ export const deleteAddressBookEntry = async (
   res: Response
 ): Promise<void> => {
   try {
+    console.log('DELETE ADDRESS BOOK ENTRY');
     const { entryId } = req.params;
 
     const walletAddress = req.user!.wallet!.address;
