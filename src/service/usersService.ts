@@ -15,8 +15,10 @@ export class UsersService {
   static async createUser(dto: CreateUserDto) {
     return prisma.user.create({
       data: {
-        ...dto,
         id: dto.user_id,
+        username: dto.username,
+        profile_picture_url: dto.profile_picture_url,
+        about: dto.about,
       },
     });
   }
@@ -26,7 +28,11 @@ export class UsersService {
       where: {
         id: dto.user_id,
       },
-      data: dto,
+      data: {
+        username: dto.username,
+        profile_picture_url: dto.profile_picture_url,
+        about: dto.about,
+      },
     });
   }
 
