@@ -186,14 +186,16 @@ export const deleteAddressBookEntry = async (
   res: Response
 ): Promise<void> => {
   try {
-    console.log('DELETE ADDRESS BOOK ENTRY');
     const { entryId } = req.params;
 
     const walletAddress = req.user!.wallet!.address;
 
     await AddressBookService.deleteEntry(walletAddress, entryId);
 
-    res.status(204);
+    res.status(204).json({
+      success: true,
+      data: null,
+    });
   } catch (err: any) {
     if (err.code === 'P2025') {
       res.status(404).json({
