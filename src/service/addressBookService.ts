@@ -1,17 +1,10 @@
+import {
+  AddressBookDto,
+  UpdateAddressBookDto,
+} from '@/utils/dto/addressBook.dto';
 import { prismaService } from './prismaService';
 
 const prisma = prismaService.prisma;
-
-export interface AddressBookEntry {
-  id?: string;
-  user_id: string;
-  name: string;
-  address: string;
-  description?: string;
-  network?: string;
-  tags?: string[];
-  is_favorite?: boolean;
-}
 
 /**
  * AddressBookService - Service for managing user's address book entries
@@ -87,10 +80,11 @@ export class AddressBookService {
 
   /**
    * Create a new address book entry
+   * @param userId User wallet address
    * @param entry Address book entry data
    * @returns Created address book entry
    */
-  static async createEntry(entry: AddressBookEntry) {
+  static async createEntry(entry: AddressBookDto) {
     return prisma.addressBook.create({
       data: {
         user_id: entry.user_id,
@@ -110,10 +104,11 @@ export class AddressBookService {
    * @param entry Updated address book entry data
    * @returns Updated address book entry
    */
-  static async updateEntry(entryId: string, entry: Partial<AddressBookEntry>) {
+  static async updateEntry(entryId: string, entry: UpdateAddressBookDto) {
     return prisma.addressBook.update({
       where: {
         id: entryId,
+        user_id: entry.user_id,
       },
       data: {
         name: entry.name,

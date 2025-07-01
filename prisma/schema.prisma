@@ -27,9 +27,9 @@ model TgUser {
 // Main Users table
 model User {
   id                  String  @id // Wallet address as primary key
-  handle              String  @unique
+  username            String  @unique
   profile_picture_url String?
-  description         String?
+  about               String? @db.Text()
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -51,7 +51,7 @@ model Post {
   parent_id  String?  @db.Uuid // For threaded posts
   quoted     Boolean  @default(false)
   user_id    String
-  content    String?  @db.Text
+  content    String?  @db.Text()
   created_at DateTime @default(now()) @db.Timestamptz
 
   // Relations
