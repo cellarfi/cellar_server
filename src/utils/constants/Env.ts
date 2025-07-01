@@ -1,6 +1,6 @@
-import { config } from 'dotenv'
+import { config } from 'dotenv';
 
-config()
+config();
 
 export const Env = {
   PORT: process.env.PORT || 3000,
@@ -11,4 +11,6 @@ export const Env = {
   RUGCHECKER_API_KEY: process.env.RUGCHECKER_API_KEY || '',
   HELIUS_API_KEY: process.env.HELIUS_API_KEY || '',
   RPC_URL: process.env.RPC_URL || '',
-}
+  PRIVY_APP_ID: process.env.PRIVY_APP_ID || '',
+  PRIVY_APP_SECRET: process.env.PRIVY_APP_SECRET || '',
+};

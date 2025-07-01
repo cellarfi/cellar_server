@@ -6,22 +6,23 @@ import {
   updateAddressBookEntry,
 } from '@/controllers/addressBookController';
 import { Router } from 'express';
+import { authMiddleware } from '@/middleware/auth.middleware';
 
 const router = Router();
 
 // Get all address book entries for a user
-router.get('/:walletAddress', getAddressBook);
+router.get('/', authMiddleware, getAddressBook);
 
 // Get a specific address book entry
-router.get('/:walletAddress/:entryId', getAddressBookEntry);
+router.get('/:entryId', authMiddleware, getAddressBookEntry);
 
 // Create a new address book entry
-router.post('/:walletAddress', createAddressBookEntry);
+router.post('/', authMiddleware, createAddressBookEntry);
 
 // Update an existing address book entry
-router.patch('/:walletAddress/:entryId', updateAddressBookEntry);
+router.patch('/:entryId', authMiddleware, updateAddressBookEntry);
 
 // Delete an address book entry
-router.delete('/:walletAddress/:entryId', deleteAddressBookEntry);
+router.delete('/:entryId', authMiddleware, deleteAddressBookEntry);
 
 export default router;
