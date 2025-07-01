@@ -42,8 +42,11 @@ export const createUser = async (
   res: Response
 ): Promise<void> => {
   try {
+    const walletAddress = req.user!.wallet!.address;
+
     const { success, data, error } = await createUserSchema.safeParseAsync({
       ...req.body,
+      user_id: walletAddress,
     });
     if (!success) {
       res.status(400).json({
