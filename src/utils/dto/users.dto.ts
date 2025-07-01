@@ -8,11 +8,15 @@ export const createUserSchema = z.object({
   username: z.string().min(3).max(20),
   profile_picture_url: z.string().optional(),
   about: z.string().optional(),
+  created_at: z.date().default(() => new Date()),
 });
 export type CreateUserDto = z.infer<typeof createUserSchema>;
 
 export const updateUserSchema = createUserSchema
   .partial()
+  .omit({
+    created_at: true,
+  })
   .required({
     user_id: true,
   })
