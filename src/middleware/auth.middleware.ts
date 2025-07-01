@@ -18,8 +18,6 @@ export const authMiddleware = async (
     const privyClient = new PrivyClient(Env.PRIVY_APP_ID, Env.PRIVY_APP_SECRET);
     const user = await privyClient.getUser({ idToken });
 
-    console.log('USER FROM PRIVY', user);
-
     if (!user) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
