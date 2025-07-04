@@ -14,20 +14,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model TgUser {
-  id    String @id @default(cuid())
-  email String @unique
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  @@index([id, email])
-}
-
 // Main Users table
 model User {
-  id                  String  @id // Wallet address as primary key
-  username            String  @unique
+  id                  String  @id @default(cuid())
+  privy_id            String  @unique
+  username            String?
+  handle              String? @unique
   profile_picture_url String?
   about               String? @db.Text()
 
@@ -35,65 +27,16 @@ model User {
   updated_at DateTime @updatedAt
 
   // Relations
-  posts        Post[]        @relation("UserPosts")
-  likes_posts  LikePost[]
-  followers    Follow[]      @relation("Following")
-  following    Follow[]      @relation("Follower")
   push_tokens  PushToken[]
   address_book AddressBook[]
 
+  @@index([id, privy_id, username, handle])
   @@map("users")
-}
-
-// Posts table
-model Post {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  parent_id  String?  @db.Uuid // For threaded posts
-  quoted     Boolean  @default(false)
-  user_id    String
-  content    String?  @db.Text()
-  created_at DateTime @default(now()) @db.Timestamptz
-
-  // Relations
-  user           User       @relation("UserPosts", fields: [user_id], references: [id], onDelete: Cascade)
-  parent         Post?      @relation("PostReplies", fields: [parent_id], references: [id], onDelete: Cascade)
-  replies        Post[]     @relation("PostReplies")
-  user_reactions LikePost[]
-
-  @@map("posts")
-}
-
-model LikePost {
-  post_id    String   @db.Uuid
-  user_id    String
-  created_at DateTime @default(now()) @db.Timestamptz
-
-  // Relations
-  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@id([post_id, user_id])
-  @@index([post_id, user_id])
-  @@map("user_reactions")
-}
-
-// Follows table
-model Follow {
-  follower_id  String
-  following_id String
-  created_at   DateTime @default(now()) @db.Timestamptz
-
-  // Relations
-  follower  User @relation("Follower", fields: [follower_id], references: [id], onDelete: Cascade)
-  following User @relation("Following", fields: [following_id], references: [id], onDelete: Cascade)
-
-  @@id([follower_id, following_id])
-  @@map("follows")
 }
 
 // Push tokens table
 model PushToken {
-  id              Int      @id @default(autoincrement())
+  id              String   @id @default(cuid())
   user_id         String
   expo_push_token String   @unique @db.VarChar(500)
   device_id       String?  @db.VarChar(255)
@@ -107,10 +50,7 @@ model PushToken {
   // Relations
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@index([user_id])
-  @@index([is_active])
-  @@index([platform])
-  @@index([user_id, is_active])
+  @@index([user_id, is_active, platform])
   @@map("push_tokens")
 }
 
@@ -130,8 +70,7 @@ model AddressBook {
   // Relations
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@unique([user_id, address])
-  @@unique([user_id, name])
+  @@unique([user_id, address, name])
   @@index([user_id, name])
   @@map("address_book")
 }
