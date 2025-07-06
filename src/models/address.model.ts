@@ -1,10 +1,10 @@
 import {
   AddressBookDto,
   UpdateAddressBookDto,
-} from '@/utils/dto/addressBook.dto';
-import { prismaService } from './prismaService';
+} from '@/utils/dto/addressBook.dto'
+import { prismaService } from '../service/prismaService'
 
-const prisma = prismaService.prisma;
+const prisma = prismaService.prisma
 
 /**
  * AddressBookService - Service for managing user's address book entries
@@ -16,7 +16,7 @@ const prisma = prismaService.prisma;
  * - Updating existing entries
  * - Deleting entries
  */
-export class AddressBookService {
+export class AddressBookModel {
   /**
    * Get all address book entries for a user
    * @param userId User wallet address
@@ -30,7 +30,7 @@ export class AddressBookService {
       orderBy: {
         created_at: 'desc',
       },
-    });
+    })
   }
 
   /**
@@ -45,7 +45,7 @@ export class AddressBookService {
         id: entryId,
         user_id: userId,
       },
-    });
+    })
   }
 
   /**
@@ -60,7 +60,7 @@ export class AddressBookService {
         user_id: userId,
         address,
       },
-    });
+    })
   }
 
   /**
@@ -75,7 +75,7 @@ export class AddressBookService {
         user_id: userId,
         name,
       },
-    });
+    })
   }
 
   /**
@@ -85,6 +85,16 @@ export class AddressBookService {
    * @returns Created address book entry
    */
   static async createEntry(entry: AddressBookDto) {
+    const addressBookEntry = await prisma.addressBook.findFirst({
+      where: {
+        address: entry.address,
+        user_id: entry.user_id,
+      },
+    })
+    if (addressBookEntry) {
+      throw new Error('Address book entry already exists')
+    }
+
     return prisma.addressBook.create({
       data: {
         user_id: entry.user_id,
@@ -95,7 +105,7 @@ export class AddressBookService {
         tags: entry.tags || [],
         is_favorite: entry.is_favorite,
       },
-    });
+    })
   }
 
   /**
@@ -118,7 +128,7 @@ export class AddressBookService {
         tags: entry.tags || [],
         is_favorite: entry.is_favorite,
       },
-    });
+    })
   }
 
   /**
@@ -133,6 +143,6 @@ export class AddressBookService {
         id: entryId,
         user_id: userId,
       },
-    });
+    })
   }
 }

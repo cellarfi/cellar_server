@@ -16,42 +16,53 @@ datasource db {
 
 // Main Users table
 model User {
-  id                  String  @id @default(cuid())
-  privy_id            String  @unique
-  username            String?
-  handle              String? @unique
+  id                  String  @id
+  email               String
+  display_name        String
+  tag_name            String
   profile_picture_url String?
   about               String? @db.Text()
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  // All timestamps stored in UTC
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
 
   // Relations
-  push_tokens  PushToken[]
   address_book AddressBook[]
+  sessions     Session[]
 
-  @@index([id, privy_id, username, handle])
+  @@unique([id, email])
+  @@index([id, tag_name, display_name])
   @@map("users")
 }
 
-// Push tokens table
-model PushToken {
-  id              String   @id @default(cuid())
+model Session {
+  id              String       @id @default(cuid())
   user_id         String
-  expo_push_token String   @unique @db.VarChar(500)
-  device_id       String?  @db.VarChar(255)
-  platform        String   @db.VarChar(20) // 'ios' or 'android'
-  app_version     String?  @db.VarChar(50)
-  is_active       Boolean  @default(true)
-  created_at      DateTime @default(now())
-  updated_at      DateTime @default(now()) @updatedAt
-  last_used_at    DateTime @default(now())
+  device_id       String       @unique // Unique device identifier
+  expo_push_token String       @unique @db.VarChar(500)
+  platform        String // 'ios', 'android', 'web', 'desktop'
+  device_name     String? // User-friendly device name
+  os_version      String? // Operating system version
+  app_version     String? // App version
+  device_model    String? // Device model (iPhone 12, Samsung Galaxy S21, etc.)
+  agent           String? // Agent ID
+  ip_address      String? // IP address of the device
+  country         String? // Country of the device
+  city            String? // City of the device
+  status          DeviceStatus @default(ACTIVE)
+
+  // All timestamps stored in UTC
+  last_seen_at DateTime @default(now()) @db.Timestamptz
+  created_at   DateTime @default(now()) @db.Timestamptz
+  updated_at   DateTime @updatedAt @db.Timestamptz
 
   // Relations
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@index([user_id, is_active, platform])
-  @@map("push_tokens")
+  @@index([user_id, device_id, status])
+  @@index([user_id, status, last_seen_at])
+  @@map("sessions")
 }
 
 model AddressBook {
@@ -64,8 +75,9 @@ model AddressBook {
   is_favorite Boolean  @default(false)
   tags        String[]
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  // All timestamps stored in UTC
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
 
   // Relations
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -73,4 +85,10 @@ model AddressBook {
   @@unique([user_id, address, name])
   @@index([user_id, name])
   @@map("address_book")
+}
+
+enum DeviceStatus {
+  ACTIVE
+  SIGNED_OUT
+  REVOKED
 }

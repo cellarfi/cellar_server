@@ -29,6 +29,10 @@ export function getBirdeyeTimeParams(timeframe: BirdEyeTimePeriod) {
       type = '1D'
       time_from = now - 30 * 24 * 60 * 60
       break
+    case '1Y':
+      type = '1Y'
+      time_from = now - 365 * 24 * 60 * 60
+      break
     default:
       type = '15m'
       time_from = now - 60 * 60

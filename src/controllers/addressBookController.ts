@@ -1,10 +1,10 @@
-import { AddressBookService } from '@/service/addressBookService';
+import { AddressBookModel } from '@/models/address.model'
 import {
   createAddressBookSchema,
   UpdateAddressBookDto,
   updateAddressBookSchema,
-} from '@/utils/dto/addressBook.dto';
-import { Request, Response } from 'express';
+} from '@/utils/dto/addressBook.dto'
+import { Request, Response } from 'express'
 
 /**
  * Get all address book entries for a user
@@ -14,29 +14,30 @@ export const getAddressBook = async (
   res: Response
 ): Promise<void> => {
   try {
-    const walletAddress = req.user?.wallet?.address;
-    if (!walletAddress) {
+    const id = req.user!.id.split(':').pop() || req.user!.id
+
+    if (!id) {
       res.status(401).json({
         success: false,
         error: 'Unauthorized',
-      });
-      return;
+      })
+      return
     }
 
-    const entries = await AddressBookService.getAllEntries(walletAddress);
+    const entries = await AddressBookModel.getAllEntries(id)
 
     res.json({
       success: true,
       data: entries,
-    });
+    })
   } catch (err: any) {
-    console.error('[getAddressBook] Error:', err);
+    console.error('[getAddressBook] Error:', err)
     res.status(500).json({
       success: false,
       error: 'An error occurred retrieving the address book',
-    });
+    })
   }
-};
+}
 
 /**
  * Get a specific address book entry
@@ -46,39 +47,40 @@ export const getAddressBookEntry = async (
   res: Response
 ): Promise<void> => {
   try {
-    const walletAddress = req.user?.wallet?.address;
-    if (!walletAddress) {
+    const id = req.user!.id.split(':').pop() || req.user!.id
+
+    if (!id) {
       res.status(401).json({
         success: false,
         error: 'Unauthorized',
-      });
-      return;
+      })
+      return
     }
 
-    const { entryId } = req.params;
+    const { entryId } = req.params
 
-    const entry = await AddressBookService.getEntryById(walletAddress, entryId);
+    const entry = await AddressBookModel.getEntryById(id, entryId)
 
     if (!entry) {
       res.status(404).json({
         success: false,
         error: 'Address book entry not found',
-      });
-      return;
+      })
+      return
     }
 
     res.json({
       success: true,
       data: entry,
-    });
+    })
   } catch (err: any) {
-    console.error('[getAddressBookEntry] Error:', err);
+    console.error('[getAddressBookEntry] Error:', err)
     res.status(500).json({
       success: false,
       error: 'An error occurred retrieving the address book entry',
-    });
+    })
   }
-};
+}
 
 /**
  * Create a new address book entry
@@ -88,43 +90,43 @@ export const createAddressBookEntry = async (
   res: Response
 ): Promise<void> => {
   try {
-    const walletAddress = req.user!.wallet!.address;
+    const id = req.user!.id.split(':').pop() || req.user!.id
 
     const { success, data, error } =
       await createAddressBookSchema.safeParseAsync({
         ...req.body,
-        user_id: walletAddress,
-      });
+        user_id: id,
+      })
     if (!success) {
       res.status(400).json({
         success: false,
         error: error.message,
-      });
-      return;
+      })
+      return
     }
 
-    const entry = await AddressBookService.createEntry(data);
+    const entry = await AddressBookModel.createEntry(data)
 
     res.status(201).json({
       success: true,
       data: entry,
-    });
+    })
   } catch (err: any) {
     if (err.code === 'P2002') {
       res.status(409).json({
         success: false,
         error: 'Address book entry already exists',
-      });
-      return;
+      })
+      return
     }
 
-    console.error('[createAddressBookEntry] Error:', err);
+    console.error('[createAddressBookEntry] Error:', err)
     res.status(500).json({
       success: false,
-      error: 'An error occurred creating the address book entry',
-    });
+      error: err.message || 'An error occurred creating the address book entry',
+    })
   }
-};
+}
 
 /**
  * Update an existing address book entry
@@ -134,49 +136,49 @@ export const updateAddressBookEntry = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { entryId } = req.params;
+    const { entryId } = req.params
     const { success, data, error } =
       await updateAddressBookSchema.safeParseAsync({
         ...req.body,
-        user_id: req.user?.wallet?.address,
-      });
+        user_id: req.user!.id.split(':').pop() || req.user!.id,
+      })
     if (!success) {
       res.status(400).json({
         success: false,
         error: error.message,
-      });
-      return;
+      })
+      return
     }
 
-    const updatedEntry = await AddressBookService.updateEntry(entryId, data);
+    const updatedEntry = await AddressBookModel.updateEntry(entryId, data)
 
     res.json({
       success: true,
       data: updatedEntry,
-    });
+    })
   } catch (err: any) {
     if (err.code === 'P2002') {
       res.status(409).json({
         success: false,
         error: 'Address book entry already exists',
-      });
-      return;
+      })
+      return
     }
     if (err.code === 'P2025') {
       res.status(404).json({
         success: false,
         error: 'Address book entry not found or does not belong to this user',
-      });
-      return;
+      })
+      return
     }
 
-    console.error('[updateAddressBookEntry] Error:', err);
+    console.error('[updateAddressBookEntry] Error:', err)
     res.status(500).json({
       success: false,
-      error: 'An error occurred updating the address book entry',
-    });
+      error: err.message || 'An error occurred updating the address book entry',
+    })
   }
-};
+}
 
 /**
  * Delete an address book entry
@@ -186,29 +188,29 @@ export const deleteAddressBookEntry = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { entryId } = req.params;
+    const { entryId } = req.params
 
-    const walletAddress = req.user!.wallet!.address;
+    const id = req.user!.id.split(':').pop() || req.user!.id
 
-    await AddressBookService.deleteEntry(walletAddress, entryId);
+    await AddressBookModel.deleteEntry(id, entryId)
 
     res.status(204).json({
       success: true,
       data: null,
-    });
+    })
   } catch (err: any) {
     if (err.code === 'P2025') {
       res.status(404).json({
         success: false,
         error: 'Address book entry not found or does not belong to this user',
-      });
-      return;
+      })
+      return
     }
 
-    console.error('[deleteAddressBookEntry] Error:', err);
+    console.error('[deleteAddressBookEntry] Error:', err)
     res.status(500).json({
       success: false,
       error: 'An error occurred deleting the address book entry',
-    });
+    })
   }
-};
+}

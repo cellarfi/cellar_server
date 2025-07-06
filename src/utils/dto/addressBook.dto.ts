@@ -1,12 +1,10 @@
-import { z } from 'zod';
-import { Network, SUPPORTED_NETWORKS } from '../networks.util';
-import { isValidSolanaAddress } from '../solana.util';
+import { z } from 'zod'
+import { Network, SUPPORTED_NETWORKS } from '../networks.util'
+import { isValidSolanaAddress } from '../solana.util'
 
 export const createAddressBookSchema = z.object({
-  user_id: z.string().refine(isValidSolanaAddress, {
-    message: 'Invalid user wallet address',
-  }),
-  name: z.string(),
+  user_id: z.string(),
+  name: z.string().min(1),
   address: z.string().refine(isValidSolanaAddress, {
     message: 'Invalid wallet address',
   }),
@@ -19,8 +17,8 @@ export const createAddressBookSchema = z.object({
     .optional(),
   tags: z.array(z.string()).optional(),
   is_favorite: z.boolean().optional(),
-});
-export type AddressBookDto = z.infer<typeof createAddressBookSchema>;
+})
+export type AddressBookDto = z.infer<typeof createAddressBookSchema>
 
 export const updateAddressBookSchema = createAddressBookSchema
   .partial()
@@ -37,5 +35,5 @@ export const updateAddressBookSchema = createAddressBookSchema
     {
       message: 'At least one field must be provided for update',
     }
-  );
-export type UpdateAddressBookDto = z.infer<typeof updateAddressBookSchema>;
+  )
+export type UpdateAddressBookDto = z.infer<typeof updateAddressBookSchema>
