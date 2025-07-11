@@ -1,17 +1,25 @@
-import prismaService from '@/service/prismaService'
-import { CreateUserDto, UpdateUserDto } from '@/utils/dto/users.dto'
+import prismaService from '@/service/prismaService';
+import { CreateUserDto, UpdateUserDto } from '@/utils/dto/users.dto';
 
-const prisma = prismaService.prisma
+const prisma = prismaService.prisma;
 
 export class UsersModel {
   static async getUserById(id: string) {
-    const user_id = id.split(':').pop() || id
+    const user_id = id.split(':').pop() || id;
 
     return prisma.user.findUnique({
       where: {
         id: user_id,
       },
-    })
+    });
+  }
+
+  static async getUserByTagName(tag_name: string) {
+    return prisma.user.findUnique({
+      where: {
+        tag_name,
+      },
+    });
   }
 
   static async createUser(dto: CreateUserDto) {
@@ -25,7 +33,7 @@ export class UsersModel {
         about: dto.about,
         created_at: dto.created_at,
       },
-    })
+    });
   }
 
   static async updateUser(id: string, dto: UpdateUserDto) {
@@ -39,7 +47,7 @@ export class UsersModel {
         profile_picture_url: dto.profile_picture_url,
         about: dto.about,
       },
-    })
+    });
   }
 
   static async deleteUser(userId: string) {
@@ -47,6 +55,6 @@ export class UsersModel {
       where: {
         id: userId,
       },
-    })
+    });
   }
 }
