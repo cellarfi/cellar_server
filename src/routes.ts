@@ -11,6 +11,7 @@ import raydiumSwapRouter from './routes/swap/raydiumSwapRoutes'
 import tokenRoutes from './routes/token'
 import usersRoutes from './routes/users'
 import walletRoutes from './routes/wallet'
+import socialFiRoutes from './routes/socialfi'
 
 export const injectRoutes = (app: express.Express) => {
   app.use('/api/wallet', walletRoutes)
@@ -25,4 +26,5 @@ export const injectRoutes = (app: express.Express) => {
   app.use('/api/aura', auraRouter)
   app.use('/api/meteora', meteoraDBCRouter)
   app.use('/api/nft', nftRoutes)
+  app.use('/api/socialfi', socialFiRoutes)
 }
