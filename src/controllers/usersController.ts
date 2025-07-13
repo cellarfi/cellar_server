@@ -1,5 +1,6 @@
 import { ERROR_MESSAGES } from '@/constants/app.constants';
 import { UsersModel } from '@/models/user.model';
+import { parseUserInclude, UserIncludeQuery } from '@/types/include.types';
 import {
   CreateUserDto,
   createUserSchema,
@@ -13,14 +14,17 @@ import {
 import { Request, Response } from 'express';
 
 export const getProfile = async (
-  req: Request,
+  req: Request<{}, {}, {}, UserIncludeQuery>,
   res: Response
 ): Promise<void> => {
   try {
     const user_id_parts = req.user!.id.split(':');
     const user_id = user_id_parts[user_id_parts.length - 1];
 
-    const user = await UsersModel.getUserById(user_id);
+    // Parse include parameters from query string
+    const includeParams = parseUserInclude(req.query);
+
+    const user = await UsersModel.getUserById(user_id, includeParams);
 
     if (!user) {
       res.status(404).json({
@@ -44,7 +48,7 @@ export const getProfile = async (
 };
 
 export const getUserByTagName = async (
-  req: Request<{ tag_name: string }>,
+  req: Request<{ tag_name: string }, {}, {}, UserIncludeQuery>,
   res: Response
 ): Promise<void> => {
   try {
@@ -57,7 +61,10 @@ export const getUserByTagName = async (
       return;
     }
 
-    const user = await UsersModel.getUserByTagName(tag_name);
+    // Parse include parameters from query string
+    const includeParams = parseUserInclude(req.query);
+
+    const user = await UsersModel.getUserByTagName(tag_name, includeParams);
     if (!user) {
       res.status(404).json({
         success: false,
