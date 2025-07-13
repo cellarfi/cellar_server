@@ -38,6 +38,42 @@ export const getProfile = async (
   }
 };
 
+export const getUserByTagName = async (
+  req: Request<{ tag_name: string }>,
+  res: Response
+): Promise<void> => {
+  try {
+    const tag_name = req.params.tag_name;
+    if (!tag_name) {
+      res.status(400).json({
+        success: false,
+        error: 'Tag name is required',
+      });
+      return;
+    }
+
+    const user = await UsersModel.getUserByTagName(tag_name);
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: 'User not found',
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: user,
+    });
+  } catch (err: any) {
+    console.error('[getUserByTagName] Error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred retrieving the user by tag name',
+    });
+  }
+};
+
 export const checkIfTagNameExists = async (
   req: Request<{ tag_name: string }>,
   res: Response
