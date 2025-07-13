@@ -1,8 +1,8 @@
-import prismaService from '@/service/prismaService';
 import {
   ERROR_MESSAGES,
   TAG_NAME_UPDATE_TIME_LIMIT,
 } from '@/constants/app.constants';
+import prismaService from '@/service/prismaService';
 import {
   CreateUserDto,
   CreateUserWalletDto,
@@ -13,21 +13,26 @@ import {
 const prisma = prismaService.prisma;
 
 export class UsersModel {
-  static async getUserById(id: string) {
+  static async getUserById(id: string, include?: Record<string, boolean>) {
     const user_id = id.split(':').pop() || id;
 
     return prisma.user.findUnique({
       where: {
         id: user_id,
       },
+      include,
     });
   }
 
-  static async getUserByTagName(tag_name: string) {
+  static async getUserByTagName(
+    tag_name: string,
+    include?: Record<string, boolean>
+  ) {
     return prisma.user.findUnique({
       where: {
         tag_name,
       },
+      include,
     });
   }
 
