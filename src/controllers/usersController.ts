@@ -1,7 +1,12 @@
+import { ERROR_MESSAGES } from '@/constants/app.constants';
 import { UsersModel } from '@/models/user.model';
 import {
   CreateUserDto,
   createUserSchema,
+  CreateUserWalletDto,
+  createUserWalletSchema,
+  UpdateUserDefaultWalletDto,
+  updateUserDefaultWalletSchema,
   UpdateUserDto,
   updateUserSchema,
 } from '@/utils/dto/users.dto';
@@ -124,10 +129,21 @@ export const createUser = async (
     }
 
     const user = await UsersModel.createUser(data);
+    const wallet = await UsersModel.createUserWallet({
+      user_id: user.id,
+      chain_type: req.user!.wallet!.chainType,
+      address: req.user!.wallet!.address,
+      is_default: true,
+    });
 
     res.status(201).json({
       success: true,
-      data: user,
+      data: {
+        user: {
+          ...user,
+          wallet,
+        },
+      },
     });
   } catch (err: any) {
     if (err.code === 'P2002') {
@@ -146,6 +162,96 @@ export const createUser = async (
   }
 };
 
+export const createUserWallet = async (
+  req: Request<{}, {}, CreateUserWalletDto>,
+  res: Response
+): Promise<void> => {
+  try {
+    const { success, data, error } =
+      await createUserWalletSchema.safeParseAsync({
+        ...req.body,
+      });
+    if (!success) {
+      res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+      return;
+    }
+
+    const wallet = await UsersModel.createUserWallet(data);
+
+    res.status(201).json({
+      success: true,
+      data: wallet,
+    });
+  } catch (err: any) {
+    console.error('[createUserWallet] Error:', err);
+    if (err.code === 'P2002') {
+      res.status(409).json({
+        success: false,
+        error: 'User wallet already exists',
+      });
+      return;
+    }
+    if (err.code === 'P2025') {
+      res.status(404).json({
+        success: false,
+        error: 'User not found',
+      });
+      return;
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred creating the user wallet',
+    });
+  }
+};
+
+export const updateUserDefaultWallet = async (
+  req: Request<{}, {}, UpdateUserDefaultWalletDto>,
+  res: Response
+): Promise<void> => {
+  try {
+    const id = req.user!.id.split(':').pop() || req.user!.id;
+
+    const { success, data, error } =
+      await updateUserDefaultWalletSchema.safeParseAsync({
+        ...req.body,
+        user_id: id,
+      });
+    if (!success) {
+      res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+      return;
+    }
+
+    const wallet = await UsersModel.updateUserDefaultWallet(data);
+
+    res.status(201).json({
+      success: true,
+      data: wallet,
+    });
+  } catch (err: any) {
+    console.error('[updateUserDefaultWallet] Error:', err);
+    if (err.code === 'P2025') {
+      res.status(404).json({
+        success: false,
+        error: 'User or wallet not found',
+      });
+      return;
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred updating the user default wallet',
+    });
+  }
+};
+
 export const updateProfile = async (
   req: Request<{}, {}, UpdateUserDto>,
   res: Response
@@ -154,6 +260,7 @@ export const updateProfile = async (
     const id = req.user!.id.split(':').pop() || req.user!.id;
     const { success, data, error } = await updateUserSchema.safeParseAsync({
       ...req.body,
+      user_id: id,
     });
     if (!success) {
       res.status(400).json({
@@ -173,10 +280,23 @@ export const updateProfile = async (
     });
   } catch (err: any) {
     console.error('[updateProfile] Error:', err);
+
     if (err.code === 'P2025') {
       res.status(404).json({
         success: false,
         error: 'User not found',
+      });
+      return;
+    }
+
+    // Handle tag name update time limit error
+    if (
+      err.message &&
+      err.message.includes(ERROR_MESSAGES.TAG_NAME_UPDATE_LIMIT)
+    ) {
+      res.status(400).json({
+        success: false,
+        error: err.message,
       });
       return;
     }
