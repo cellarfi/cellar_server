@@ -41,7 +41,7 @@ export const getTokenOverview = async (
       tokenOverview: tokenOverview.data!,
     }
 
-    if (includeLineChart) {
+    if (Boolean(includeLineChart)) {
       const params = getBirdeyeTimeParams('1H')
       const historicalPrice = await birdEyeRequests.defi.historicalPrice({
         tokenAddress,
@@ -56,7 +56,7 @@ export const getTokenOverview = async (
       }
     }
 
-    if (includeOHLCV) {
+    if (Boolean(includeOHLCV)) {
       const params = getBirdeyeTimeParams('1H')
       const ohlcv = await birdEyeRequests.defi.tokenOHLCV({
         tokenAddress,

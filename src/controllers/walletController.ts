@@ -28,7 +28,7 @@ export const getWalletPortfolio = async (
 
     const portfolio = portfolioResponse.data
 
-    if (includePriceChange) {
+    if (Boolean(includePriceChange)) {
       const priceDataResponse = await birdEyeRequests.defi.getMultiPrice(
         portfolio?.items.map((item) => item.address) || []
       )
