@@ -17,11 +17,11 @@ export const addSession = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.user!.id
+    const user_id = req.user!.id
 
     const { success, data, error } = await createSessionSchema.safeParseAsync({
       ...req.body,
-      user_id: userId,
+      user_id,
     })
 
     if (!success) {
@@ -59,16 +59,20 @@ export const addSession = async (
  * Update an existing session
  */
 export const updateSession = async (
-  req: Request<{ sessionId: string }, {}, Omit<UpdateSessionDto, 'session_id'>>,
+  req: Request<
+    { session_id: string },
+    {},
+    Omit<UpdateSessionDto, 'session_id'>
+  >,
   res: Response
 ): Promise<void> => {
   try {
-    const { sessionId } = req.params
-    const userId = req.user!.id
+    const { session_id } = req.params
+    const user_id = req.user!.id
 
     // Verify session belongs to current user
-    const existingSession = await SessionModel.getSessionById(sessionId)
-    if (!existingSession || existingSession.user_id !== userId) {
+    const existingSession = await SessionModel.getSessionById(session_id)
+    if (!existingSession || existingSession.user_id !== user_id) {
       res.status(404).json({
         success: false,
         error: 'Session not found or access denied',
@@ -77,7 +81,7 @@ export const updateSession = async (
     }
 
     const { success, data, error } = await updateSessionSchema.safeParseAsync({
-      session_id: sessionId,
+      session_id,
       ...req.body,
     })
 
@@ -120,11 +124,11 @@ export const getUserSessions = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.user!.id
+    const user_id = req.user!.id
     const { device_id, status } = req.query
 
     const queryData: SessionQueryDto = {
-      user_id: userId,
+      user_id,
     }
 
     if (device_id) queryData.device_id = device_id
@@ -161,16 +165,16 @@ export const getUserSessions = async (
  * Get a specific session by ID
  */
 export const getSession = async (
-  req: Request<{ sessionId: string }>,
+  req: Request<{ session_id: string }>,
   res: Response
 ): Promise<void> => {
   try {
-    const { sessionId } = req.params
-    const userId = req.user!.id
+    const { session_id } = req.params
+    const user_id = req.user!.id
 
-    const session = await SessionModel.getSessionById(sessionId)
+    const session = await SessionModel.getSessionById(session_id)
 
-    if (!session || session.user_id !== userId) {
+    if (!session || session.user_id !== user_id) {
       res.status(404).json({
         success: false,
         error: 'Session not found or access denied',
@@ -195,16 +199,16 @@ export const getSession = async (
  * Revoke a specific session
  */
 export const revokeSession = async (
-  req: Request<{ sessionId: string }>,
+  req: Request<{ session_id: string }>,
   res: Response
 ): Promise<void> => {
   try {
-    const { sessionId } = req.params
-    const userId = req.user!.id
+    const { session_id } = req.params
+    const user_id = req.user!.id
 
     // Verify session belongs to current user
-    const existingSession = await SessionModel.getSessionById(sessionId)
-    if (!existingSession || existingSession.user_id !== userId) {
+    const existingSession = await SessionModel.getSessionById(session_id)
+    if (!existingSession || existingSession.user_id !== user_id) {
       res.status(404).json({
         success: false,
         error: 'Session not found or access denied',
@@ -212,7 +216,7 @@ export const revokeSession = async (
       return
     }
 
-    await SessionModel.revokeSession(sessionId)
+    await SessionModel.revokeSession(session_id)
 
     res.json({
       success: true,
@@ -239,14 +243,14 @@ export const revokeSession = async (
  * Revoke all sessions except the current one
  */
 export const revokeAllSessions = async (
-  req: Request<{}, {}, { currentSessionId?: string }>,
+  req: Request<{}, {}, { current_session_id?: string }>,
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.user!.id
-    const { currentSessionId } = req.body
+    const user_id = req.user!.id
+    const { current_session_id } = req.body
 
-    if (!currentSessionId) {
+    if (!current_session_id) {
       res.status(400).json({
         success: false,
         error: 'Current session ID is required',
@@ -255,8 +259,8 @@ export const revokeAllSessions = async (
     }
 
     // Verify current session belongs to user
-    const currentSession = await SessionModel.getSessionById(currentSessionId)
-    if (!currentSession || currentSession.user_id !== userId) {
+    const currentSession = await SessionModel.getSessionById(current_session_id)
+    if (!currentSession || currentSession.user_id !== user_id) {
       res.status(400).json({
         success: false,
         error: 'Invalid current session ID',
@@ -265,8 +269,8 @@ export const revokeAllSessions = async (
     }
 
     const result = await SessionModel.signOutAllOtherSessions(
-      userId,
-      currentSessionId
+      user_id,
+      current_session_id
     )
 
     res.json({
@@ -286,16 +290,16 @@ export const revokeAllSessions = async (
  * Sign out a specific session (set status to SIGNED_OUT)
  */
 export const signOutSession = async (
-  req: Request<{ sessionId: string }>,
+  req: Request<{ session_id: string }>,
   res: Response
 ): Promise<void> => {
   try {
-    const { sessionId } = req.params
-    const userId = req.user!.id
+    const { session_id } = req.params
+    const user_id = req.user!.id
 
     // Verify session belongs to current user
-    const existingSession = await SessionModel.getSessionById(sessionId)
-    if (!existingSession || existingSession.user_id !== userId) {
+    const existingSession = await SessionModel.getSessionById(session_id)
+    if (!existingSession || existingSession.user_id !== user_id) {
       res.status(404).json({
         success: false,
         error: 'Session not found or access denied',
@@ -303,7 +307,7 @@ export const signOutSession = async (
       return
     }
 
-    await SessionModel.signOutSession(sessionId)
+    await SessionModel.signOutSession(session_id)
 
     res.json({
       success: true,
@@ -330,16 +334,16 @@ export const signOutSession = async (
  * Update last seen timestamp for a session
  */
 export const updateLastSeen = async (
-  req: Request<{ sessionId: string }>,
+  req: Request<{ session_id: string }>,
   res: Response
 ): Promise<void> => {
   try {
-    const { sessionId } = req.params
-    const userId = req.user!.id
+    const { session_id } = req.params
+    const user_id = req.user!.id
 
     // Verify session belongs to current user
-    const existingSession = await SessionModel.getSessionById(sessionId)
-    if (!existingSession || existingSession.user_id !== userId) {
+    const existingSession = await SessionModel.getSessionById(session_id)
+    if (!existingSession || existingSession.user_id !== user_id) {
       res.status(404).json({
         success: false,
         error: 'Session not found or access denied',
@@ -347,7 +351,7 @@ export const updateLastSeen = async (
       return
     }
 
-    await SessionModel.updateLastSeen(sessionId)
+    await SessionModel.updateLastSeen(session_id)
 
     res.json({
       success: true,
@@ -374,16 +378,16 @@ export const updateLastSeen = async (
  * Delete a session completely
  */
 export const deleteSession = async (
-  req: Request<{ sessionId: string }>,
+  req: Request<{ session_id: string }>,
   res: Response
 ): Promise<void> => {
   try {
-    const { sessionId } = req.params
-    const userId = req.user!.id
+    const { session_id } = req.params
+    const user_id = req.user!.id
 
     // Verify session belongs to current user
-    const existingSession = await SessionModel.getSessionById(sessionId)
-    if (!existingSession || existingSession.user_id !== userId) {
+    const existingSession = await SessionModel.getSessionById(session_id)
+    if (!existingSession || existingSession.user_id !== user_id) {
       res.status(404).json({
         success: false,
         error: 'Session not found or access denied',
@@ -391,7 +395,7 @@ export const deleteSession = async (
       return
     }
 
-    await SessionModel.deleteSession(sessionId)
+    await SessionModel.deleteSession(session_id)
 
     res.status(204).json({
       success: true,
@@ -422,9 +426,9 @@ export const getActiveSessionsCount = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.user!.id
+    const user_id = req.user!.id
 
-    const count = await SessionModel.getActiveSessionsCount(userId)
+    const count = await SessionModel.getActiveSessionsCount(user_id)
 
     res.json({
       success: true,

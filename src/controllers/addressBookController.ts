@@ -14,7 +14,7 @@ export const getAddressBook = async (
   res: Response
 ): Promise<void> => {
   try {
-    const id = req.user!.id.split(':').pop() || req.user!.id
+    const id = req.user!.id
 
     if (!id) {
       res.status(401).json({
@@ -47,7 +47,7 @@ export const getAddressBookEntry = async (
   res: Response
 ): Promise<void> => {
   try {
-    const id = req.user!.id.split(':').pop() || req.user!.id
+    const id = req.user!.id
 
     if (!id) {
       res.status(401).json({
@@ -57,9 +57,9 @@ export const getAddressBookEntry = async (
       return
     }
 
-    const { entryId } = req.params
+    const { entry_id } = req.params
 
-    const entry = await AddressBookModel.getEntryById(id, entryId)
+    const entry = await AddressBookModel.getEntryById(id, entry_id)
 
     if (!entry) {
       res.status(404).json({
@@ -90,7 +90,7 @@ export const createAddressBookEntry = async (
   res: Response
 ): Promise<void> => {
   try {
-    const id = req.user!.id.split(':').pop() || req.user!.id
+    const id = req.user!.id
 
     const { success, data, error } =
       await createAddressBookSchema.safeParseAsync({
@@ -132,15 +132,15 @@ export const createAddressBookEntry = async (
  * Update an existing address book entry
  */
 export const updateAddressBookEntry = async (
-  req: Request<{ entryId: string }, {}, UpdateAddressBookDto>,
+  req: Request<{ entry_id: string }, {}, UpdateAddressBookDto>,
   res: Response
 ): Promise<void> => {
   try {
-    const { entryId } = req.params
+    const { entry_id } = req.params
     const { success, data, error } =
       await updateAddressBookSchema.safeParseAsync({
         ...req.body,
-        user_id: req.user!.id.split(':').pop() || req.user!.id,
+        user_id: req.user!.id,
       })
     if (!success) {
       res.status(400).json({
@@ -150,7 +150,7 @@ export const updateAddressBookEntry = async (
       return
     }
 
-    const updatedEntry = await AddressBookModel.updateEntry(entryId, data)
+    const updatedEntry = await AddressBookModel.updateEntry(entry_id, data)
 
     res.json({
       success: true,
@@ -184,15 +184,15 @@ export const updateAddressBookEntry = async (
  * Delete an address book entry
  */
 export const deleteAddressBookEntry = async (
-  req: Request<{ entryId: string }>,
+  req: Request<{ entry_id: string }>,
   res: Response
 ): Promise<void> => {
   try {
-    const { entryId } = req.params
+    const { entry_id } = req.params
 
-    const id = req.user!.id.split(':').pop() || req.user!.id
+    const id = req.user!.id
 
-    await AddressBookModel.deleteEntry(id, entryId)
+    await AddressBookModel.deleteEntry(id, entry_id)
 
     res.status(204).json({
       success: true,

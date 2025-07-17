@@ -16,12 +16,16 @@ datasource db {
 
 // Main Users table
 model User {
-  id                  String  @id
-  email               String
+  id                  String  @id @unique
+  email               String  @unique
   display_name        String
   tag_name            String  @unique
   profile_picture_url String?
   about               String? @db.Text()
+
+  // Referral system fields
+  referral_code String  @unique // User's unique referral code
+  referred_by   String? // code of the user who referred this user
 
   // All timestamps stored in UTC
   tag_name_updated_at DateTime?
@@ -31,17 +35,24 @@ model User {
   // Relations
   address_book AddressBook[]
   sessions     Session[]
-  Post         Post[]
-  Comments     Comment[]
-  Followers    Follower[]
-  Following    Following[]
-  Like         Like[]
-  receivedTips Tip[] @relation("UserReceivedTips")
-  givenTips    Tip[] @relation("UserGivenTips")
+  post         Post[]
+  comments     Comment[]
+  followers    Follower[]
+  following    Following[]
+  like         Like[]
+  receivedTips Tip[]         @relation("UserReceivedTips")
+  givenTips    Tip[]         @relation("UserGivenTips")
   wallets      Wallet[]
+  CommentLike  CommentLike[]
+  donations    Donation[] // Donations made by this user
 
-  @@unique([id, email])
+  // Referral relations
+  referrer  User?  @relation("UserReferrals", fields: [referred_by], references: [referral_code])
+  referrals User[] @relation("UserReferrals")
+
   @@index([id, tag_name, display_name])
+  @@index([referral_code])
+  @@index([referred_by])
   @@map("users")
 }
 
@@ -115,85 +126,206 @@ model AddressBook {
   @@map("address_book")
 }
 
+model Post {
+  id      String  @id @default(cuid())
+  content String
+  user_id String?
+
+  // Keep post_type for easy filtering
+  post_type PostType @default(REGULAR)
+
+  created_at DateTime @default(now()) @db.Timestamptz()
+  updated_at DateTime @updatedAt @db.Timestamptz()
+
+  // Relations
+  user         User?        @relation(fields: [user_id], references: [id])
+  like         Like[]
+  comment      Comment[]
+  donations    Donation[] // Track individual donations
+  funding_meta FundingMeta? // Optional fundraising metadata
+  token_meta   TokenMeta? // Optional token call metadata
+
+  @@map("posts")
+}
+
+// New model for fundraising metadata
+model FundingMeta {
+  id             String            @id @default(cuid())
+  post_id        String            @unique // One-to-one relationship with Post
+  target_amount  Decimal           @db.Decimal(18, 8) // Target amount for fundraising
+  current_amount Decimal           @default(0) @db.Decimal(18, 8) // Current raised amount
+  wallet_address String // Donation wallet address
+  chain_type     String // Blockchain network (solana, ethereum, etc.)
+  token_symbol   String? // Token symbol for the fundraising
+  token_address  String? // Token contract address
+  deadline       DateTime?         @db.Timestamptz // Fundraising deadline
+  status         FundraisingStatus @default(ACTIVE)
+
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+
+  // Relations
+  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
+
+  @@index([post_id])
+  @@index([status])
+  @@map("funding_meta")
+}
+
+// New model for token call metadata
+model TokenMeta {
+  id            String    @id @default(cuid())
+  post_id       String    @unique // One-to-one relationship with Post
+  token_name    String // Token name
+  token_symbol  String // Token symbol
+  token_address String // Token contract address
+  logo_url      String? // Token logo URL
+  chain_type    String // Blockchain network (solana, ethereum, etc.)
+  launch_date   DateTime? @db.Timestamptz // Token launch date
+  initial_price Decimal?  @db.Decimal(18, 8) // price when it was called
+  target_price  Decimal?  @db.Decimal(18, 8) // Price prediction/target
+  market_cap    Decimal?  @db.Decimal(18, 2) // Market cap when it was called
+  description   String?   @db.Text // Token/project description
+
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+
+  // Relations
+  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
+
+  @@index([post_id])
+  @@index([token_address])
+  @@index([chain_type])
+  @@map("token_meta")
+}
+
+// New model to track individual donations
+model Donation {
+  id             String  @id @default(cuid())
+  post_id        String
+  donor_user_id  String? // Optional: if donor is registered user
+  amount         Decimal @db.Decimal(18, 8)
+  token_symbol   String  @default("SOL")
+  transaction_id String? // Blockchain transaction hash
+  wallet_address String // Donor's wallet address
+  message        String? // Optional message from donor
+
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  // Relations
+  post  Post  @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  donor User? @relation(fields: [donor_user_id], references: [id])
+
+  @@index([post_id])
+  @@index([donor_user_id])
+  @@map("donations")
+}
+
+model Like {
+  id      String @id @default(cuid())
+  post_id String
+  user_id String
+
+  created_at DateTime @default(now()) @db.Timestamptz()
+  updated_at DateTime @updatedAt @db.Timestamptz()
+
+  // Relations 
+  post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("likes")
+}
+
+model CommentLike {
+  id         String @id @default(cuid())
+  comment_id String
+  user_id    String
+
+  created_at DateTime @default(now()) @db.Timestamptz()
+  updated_at DateTime @updatedAt @db.Timestamptz()
+
+  // Relations 
+  comment Comment @relation(fields: [comment_id], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("comment_likes")
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  user_id    String
+  post_id    String
+  content    String
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+  parentId   String?
+
+  // Relations 
+  user        User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  post        Post          @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  CommentLike CommentLike[]
+
+  // Self-referential relation for nested comments
+  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentReplies")
+
+  @@map("comments")
+}
+
+model Tip {
+  id         String   @id @default(cuid())
+  user_id    String
+  tipper_id  String
+  amount     Int
+  created_at DateTime @default(now()) @db.Timestamptz()
+
+  // Relations
+  user       User @relation("UserReceivedTips", fields: [user_id], references: [id], onDelete: Cascade)
+  tipperUser User @relation("UserGivenTips", fields: [tipper_id], references: [id], onDelete: Cascade)
+
+  @@map("tips")
+}
+
+model Follower {
+  id          String   @id @default(cuid())
+  user_id     String
+  follower_id String
+  created_at  DateTime @default(now()) @db.Timestamptz
+  updated_at  DateTime @updatedAt @db.Timestamptz
+
+  // Relations 
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model Following {
+  id          String @id @default(cuid())
+  user_id     String
+  follower_id String
+
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+
+  // Relations 
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("followers")
+}
+
 enum DeviceStatus {
   ACTIVE
   SIGNED_OUT
   REVOKED
 }
 
-model Post {
-  id       String  @id @default(uuid())
-  message  String
-  ownerId  String?
-  likes    Int     @default(0)
-  comments Int     @default(0)
-  hashtag Json?
-
-  createdAt DateTime @default(now()) @db.Timestamptz()
-  updatedAt DateTime @updatedAt @db.Timestamptz()
-
-  // Relations
-  user    User?     @relation(fields: [ownerId], references: [id])
-  like    Like[]
-  comment Comment[]
+enum PostType {
+  REGULAR
+  TOKEN_CALL
+  DONATION
 }
 
-model Like {
-  id        String   @id @default(uuid())
-  postId    String
-  userId    String
-  createdAt DateTime @default(now()) @db.Timestamptz()
-  updatedAt DateTime @updatedAt @db.Timestamptz()
-
-  // Relations 
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Comment {
-  id        String   @id @default(uuid())
-  userId    String
-  postId    String
-  text      String
-  createdAt DateTime @default(now()) @db.Timestamptz
-  updatedAt DateTime @updatedAt @db.Timestamptz
-
-  // Relations 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-}
-
-model Tip {
-  id        String   @id @default(uuid())
-  userId    String
-  tipper    String
-  amount    Int
-  createdAt DateTime @default(now()) @db.Timestamptz()
-
-  // Relations
-  user       User @relation("UserReceivedTips", fields: [userId], references: [id], onDelete: Cascade)
-  tipperUser User @relation("UserGivenTips", fields: [tipper], references: [id], onDelete: Cascade)
-}
-
-model Follower {
-  id         String   @id @default(uuid())
-  userId     String
-  followerId String
-  createdAt  DateTime @default(now()) @db.Timestamptz
-  updatedAt  DateTime @updatedAt @db.Timestamptz
-
-  // Relations 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Following {
-  id        String @id @default(uuid())
-  userId    String
-  follwerId String
-
-  createdAt DateTime @default(now()) @db.Timestamptz
-  updatedAt DateTime @updatedAt @db.Timestamptz
-
-  // Relations 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+enum FundraisingStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+  CANCELLED
 }
