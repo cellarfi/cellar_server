@@ -144,6 +144,8 @@ model Post {
   donations    Donation[] // Track individual donations
   funding_meta FundingMeta? // Optional fundraising metadata
   token_meta   TokenMeta? // Optional token call metadata
+
+  @@map("posts")
 }
 
 // New model for fundraising metadata
@@ -216,6 +218,7 @@ model Donation {
 
   @@index([post_id])
   @@index([donor_user_id])
+  @@map("donations")
 }
 
 model Like {
@@ -229,6 +232,8 @@ model Like {
   // Relations 
   post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("likes")
 }
 
 model CommentLike {
@@ -242,6 +247,8 @@ model CommentLike {
   // Relations 
   comment Comment @relation(fields: [comment_id], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("comment_likes")
 }
 
 model Comment {
@@ -261,6 +268,8 @@ model Comment {
   // Self-referential relation for nested comments
   parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies Comment[] @relation("CommentReplies")
+
+  @@map("comments")
 }
 
 model Tip {
@@ -273,6 +282,8 @@ model Tip {
   // Relations
   user       User @relation("UserReceivedTips", fields: [user_id], references: [id], onDelete: Cascade)
   tipperUser User @relation("UserGivenTips", fields: [tipper_id], references: [id], onDelete: Cascade)
+
+  @@map("tips")
 }
 
 model Follower {
@@ -296,6 +307,8 @@ model Following {
 
   // Relations 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("followers")
 }
 
 enum DeviceStatus {
