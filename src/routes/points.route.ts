@@ -1,4 +1,5 @@
 import { getPointHistory, getUserPoints } from '@/controllers/pointsController';
+import { getLeaderboard } from '@/controllers/leaderboardController';
 import { authMiddleware } from '@/middleware/auth.middleware';
 import { Router } from 'express';
 
@@ -12,5 +13,8 @@ router.get('/user/:user_id', authMiddleware, getUserPoints);
 
 // Get point history for current user
 router.get('/history', authMiddleware, getPointHistory);
+
+// Get points leaderboard
+router.get('/leaderboard', getLeaderboard);
 
 export default router;

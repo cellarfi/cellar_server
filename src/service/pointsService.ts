@@ -14,6 +14,7 @@ export const POINT_VALUES = {
   
   // Financial activities
   TOKEN_SWAP: 15,
+  TOKEN_SEND: 10,
   TOKEN_LAUNCH: 50,
   DONATION: 20,
   
