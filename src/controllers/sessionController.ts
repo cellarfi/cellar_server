@@ -1,4 +1,6 @@
 import { SessionModel } from '@/models/session.model'
+import { PointsService } from '@/service/pointsService'
+import prismaService from '@/service/prismaService'
 import {
   CreateSessionDto,
   createSessionSchema,
@@ -8,6 +10,9 @@ import {
   updateSessionSchema,
 } from '@/utils/dto/session.dto'
 import { Request, Response } from 'express'
+
+// Cache for tracking last daily login reward time per user
+const lastDailyLoginReward: Record<string, Date> = {}
 
 /**
  * Create a new session (add session when user logs in)
@@ -353,6 +358,49 @@ export const updateLastSeen = async (
 
     await SessionModel.updateLastSeen(session_id)
 
+    // Check and award daily login points if applicable
+    try {
+      // Check if user has already received daily login points today
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()) // Midnight today
+      const lastReward = lastDailyLoginReward[user_id]
+      
+      // Award points if they haven't received daily login points today yet
+      if (!lastReward || lastReward < today) {
+        // Check if this is their first activity of the day
+        const startOfDay = today.toISOString()
+        const endOfDay = new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()
+        
+        // Check if they already have daily login points for today
+        const existingDailyLogin = await prismaService.prisma.point.findFirst({
+          where: {
+            user_id,
+            source: 'DAILY_LOGIN',
+            created_at: {
+              gte: startOfDay,
+              lt: endOfDay
+            }
+          }
+        })
+        
+        if (!existingDailyLogin) {
+          // Award daily login points
+          await PointsService.awardPoints(user_id, 'DAILY_LOGIN', { 
+            login_date: now.toISOString(),
+            session_id
+          })
+          
+          // Update the cache
+          lastDailyLoginReward[user_id] = now
+          
+          console.log(`[updateLastSeen] Awarded daily login points to user ${user_id}`)
+        }
+      }
+    } catch (pointsError) {
+      // Log but don't affect the main functionality
+      console.error('[updateLastSeen] Error awarding daily login points:', pointsError)
+    }
+    
     res.json({
       success: true,
       message: 'Last seen updated successfully',

@@ -5,6 +5,7 @@ import followRoutes from './routes/follows.route'
 import likeRoutes from './routes/likes.route'
 import meteoraDBCRouter from './routes/meteora/meteoraDBCRoutes'
 import nftRoutes from './routes/nft.route'
+import pointsRoutes from './routes/points.route'
 import postRoutes from './routes/posts.route'
 import { launchRouter } from './routes/pumpfun/pumpfunLaunch' // import { buildCompressedNftListingTx } from './utils/compressedNftListing';
 import { pumpSwapRouter } from './routes/pumpfun/pumpSwapRoutes'
@@ -33,4 +34,5 @@ export const injectRoutes = (app: express.Express) => {
   app.use('/api/posts/likes', likeRoutes)
   app.use('/api/posts/comments', commentRoutes)
   app.use('/api/follows', followRoutes)
+  app.use('/api/points', pointsRoutes)
 }

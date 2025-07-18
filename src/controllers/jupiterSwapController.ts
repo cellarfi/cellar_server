@@ -1,4 +1,5 @@
 import {Request, Response, NextFunction} from 'express';
+import { PointsService } from '@/service/pointsService';
 // import fetch from 'node-fetch';
 
 /**
@@ -60,6 +61,27 @@ export async function jupiterSwapHandler(
         error: data.error || 'Jupiter swap failed.',
       });
       return;
+    }
+
+    // Award points for token swap
+    try {
+      // Check if we have an authenticated user
+      if (req.user?.id) {
+        // Get swap details for metadata
+        const swapDetails = {
+          input_token: quoteResponse.inputMint,
+          output_token: quoteResponse.outputMint,
+          input_amount: quoteResponse.inAmount,
+          output_amount: quoteResponse.outAmount,
+          transaction_time: new Date().toISOString()
+        };
+        
+        await PointsService.awardPoints(req.user.id, 'TOKEN_SWAP', swapDetails);
+        console.log(`[jupiterSwapHandler] Awarded points to user ${req.user.id} for token swap`);
+      }
+    } catch (pointsError) {
+      // Log but don't prevent the swap operation if points can't be awarded
+      console.error('[jupiterSwapHandler] Error awarding points:', pointsError);
     }
 
     // Send the response directly from Jupiter
