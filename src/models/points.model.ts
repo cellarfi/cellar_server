@@ -1,6 +1,7 @@
 import prismaService from '@/service/prismaService';
 import {
   CreatePointDto,
+  GetLeaderboardDto,
   GetPointHistoryDto,
   UpdateUserPointDto,
 } from '@/utils/dto/points.dto';
@@ -195,5 +196,159 @@ export class PointsModel {
     if (balanceNum < 50000) return 8;
     if (balanceNum < 100000) return 9;
     return 10; // Maximum level
+  }
+
+  /**
+   * Get leaderboard of top users by points
+   * @param dto GetLeaderboardDto with time period and pagination options
+   * @returns Array of users with their point balances, sorted by highest points
+   */
+  static async getLeaderboard(dto: GetLeaderboardDto) {
+    const { limit = 10, offset = 0, timeFrame = 'all_time' } = dto;
+
+    // Determine date range based on timeFrame
+    let startDate: Date | null = null;
+    const now = new Date();
+
+    if (timeFrame === 'weekly') {
+      // One week ago
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 7);
+    } else if (timeFrame === 'monthly') {
+      // One month ago
+      startDate = new Date(now);
+      startDate.setMonth(now.getMonth() - 1);
+    }
+
+    // For points earned within a specific time period, we'll need to join with points
+    // to calculate the sum for the given timeframe
+    if (startDate && (timeFrame === 'weekly' || timeFrame === 'monthly')) {
+      // Get the sum of points within the time period for each user
+      const userPointsInPeriod = await prisma.point.groupBy({
+        by: ['user_id'],
+        where: {
+          created_at: {
+            gte: startDate,
+          },
+          action: 'increment', // Only count increments
+        },
+        _sum: {
+          amount: true,
+        },
+        orderBy: {
+          _sum: {
+            amount: 'desc',
+          },
+        },
+        take: limit,
+        skip: offset,
+      });
+
+      // Get user details for each user_id
+      const userIds = userPointsInPeriod.map((entry) => entry.user_id);
+      const users = await prisma.user.findMany({
+        where: {
+          id: {
+            in: userIds,
+          },
+        },
+        select: {
+          id: true,
+          display_name: true,
+          tag_name: true,
+          profile_picture_url: true,
+        },
+      });
+
+      // Get corresponding UserPoint entries for level information
+      const userPoints = await prisma.userPoint.findMany({
+        where: {
+          user_id: {
+            in: userIds,
+          },
+        },
+      });
+
+      // Map users with their point sums
+      const formattedLeaderboard = userPointsInPeriod.map((entry, index) => {
+        const user = users.find((u) => u.id === entry.user_id);
+        const userPoint = userPoints.find((up) => up.user_id === entry.user_id);
+
+        return {
+          rank: offset + index + 1,
+          user_id: entry.user_id,
+          tag_name: user?.tag_name || '',
+          display_name: user?.display_name || '',
+          profile_picture_url: user?.profile_picture_url || '',
+          balance: entry._sum.amount || 0,
+          level: userPoint?.level || 1,
+        };
+      });
+
+      // Get total count for pagination
+      const totalCount = await prisma.point
+        .groupBy({
+          by: ['user_id'],
+          where: {
+            created_at: {
+              gte: startDate,
+            },
+            action: 'increment',
+          },
+          _count: true,
+        })
+        .then((result) => result.length);
+
+      return {
+        leaderboard: formattedLeaderboard,
+        pagination: {
+          total: totalCount,
+          offset,
+          limit,
+        },
+        timeFrame,
+      };
+    }
+
+    // For all-time leaderboard, use the simpler query with UserPoint totals
+    const leaderboard = await prisma.userPoint.findMany({
+      include: {
+        user: {
+          select: {
+            display_name: true,
+            tag_name: true,
+            profile_picture_url: true,
+          },
+        },
+      },
+      orderBy: {
+        balance: 'desc', // Order by highest balance first
+      },
+      skip: offset,
+      take: limit,
+    });
+
+    // Get total count for pagination
+    const totalCount = await prisma.userPoint.count();
+
+    // Format the results
+    const formattedLeaderboard = leaderboard.map((entry, index) => ({
+      rank: offset + index + 1,
+      user_id: entry.user_id,
+      tag_name: entry.user.tag_name || '',
+      display_name: entry.user.display_name || '',
+      profile_picture_url: entry.user.profile_picture_url || '',
+      balance: entry.balance,
+      level: entry.level,
+    }));
+
+    return {
+      leaderboard: formattedLeaderboard,
+      pagination: {
+        total: totalCount,
+        offset,
+        limit,
+      },
+    };
   }
 }

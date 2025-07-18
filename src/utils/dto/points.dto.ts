@@ -11,6 +11,15 @@ export const createPointDtoSchema = z.object({
 
 export type CreatePointDto = z.infer<typeof createPointDtoSchema>;
 
+// DTO for getting leaderboard data
+export const getLeaderboardDtoSchema = z.object({
+  limit: z.number().optional(),
+  offset: z.number().optional(),
+  timeFrame: z.enum(['all_time', 'weekly', 'monthly']).optional().default('all_time'),
+});
+
+export type GetLeaderboardDto = z.infer<typeof getLeaderboardDtoSchema>;
+
 // DTO for updating a user's point balance
 export const updateUserPointDtoSchema = z.object({
   user_id: z.string(),
