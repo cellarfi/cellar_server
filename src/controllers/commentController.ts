@@ -1,4 +1,6 @@
 import { CommentModel } from '@/models/comment.model'
+import { PostModel } from '@/models/posts.model'
+import { PointsService } from '@/service/pointsService'
 import { createCommentDto, createCommentSchema } from '@/utils/dto/socialfi.dto'
 import { Request, Response } from 'express'
 
@@ -22,6 +24,29 @@ export const createComment = async (
       return
     }
     const comment = await CommentModel.createComment(data)
+    
+    // Award points for commenting on a post
+    try {
+      // Award points to the commenter
+      await PointsService.awardPoints(user_id, 'POST_COMMENT', { 
+        post_id: data.post_id, 
+        comment_id: comment.id 
+      })
+      
+      // Also award points to the post creator (if different from commenter)
+      const post = await PostModel.getPost(data.post_id)
+      if (post && post.user_id && post.user_id !== user_id) {
+        await PointsService.awardPoints(post.user_id, 'POST_COMMENT', { 
+          post_id: data.post_id,
+          comment_id: comment.id,
+          commented_by: user_id
+        })
+      }
+    } catch (pointsError) {
+      // Log but don't prevent comment creation if points can't be awarded
+      console.error('[createComment] Error awarding points:', pointsError)
+    }
+    
     res.status(201).json({
       success: true,
       data: comment,

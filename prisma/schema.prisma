@@ -45,6 +45,8 @@ model User {
   wallets      Wallet[]
   CommentLike  CommentLike[]
   donations    Donation[] // Donations made by this user
+  points       Point[]    // Points earned by this user
+  user_point   UserPoint? // User's consolidated point balance
 
   // Referral relations
   referrer  User?  @relation("UserReferrals", fields: [referred_by], references: [referral_code])
@@ -328,4 +330,41 @@ enum FundraisingStatus {
   COMPLETED
   EXPIRED
   CANCELLED
+}
+
+// User Points system
+model Point {
+  id         String   @id @default(cuid())
+  user_id    String
+  amount     Decimal  @db.Decimal(18, 2)
+  action     String   @default("increment") // "increment" or "decrement"
+  source     String   // Where the points came from (e.g., "post_creation", "referral", "daily_login")
+  metadata   Json?    // Additional contextual information about the point transaction
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+
+  // Relations
+  user      User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  @@index([user_id])
+  @@index([source])
+  @@index([created_at])
+  @@map("points")
+}
+
+model UserPoint {
+  id          String   @id @default(cuid())
+  user_id     String   @unique
+  balance     Decimal  @default(0) @db.Decimal(18, 2)
+  level       Int      @default(1)
+  created_at  DateTime @default(now()) @db.Timestamptz
+  updated_at  DateTime @updatedAt @db.Timestamptz
+  
+  // Relations
+  user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  @@index([user_id])
+  @@index([balance])
+  @@index([level])
+  @@map("user_points")
 }
