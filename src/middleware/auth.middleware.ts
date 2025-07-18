@@ -14,8 +14,9 @@ export const authMiddleware = async (
   }
 
   try {
+    console.log('Access token', accessToken);
     const user = await privyClient.getUser({ idToken: accessToken });
-    // console.log('user', user)
+    console.log('user', user);
 
     if (!user) {
       res.status(401).json({ error: 'Unauthorized' });
@@ -28,6 +29,7 @@ export const authMiddleware = async (
     }
 
     req.user = user;
+    req.user.id = user.id.split(':').pop() || user.id;
     next();
   } catch (error) {
     console.error('Error verifying authentication:', error);

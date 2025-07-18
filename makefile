@@ -11,5 +11,8 @@ pgen:
 ppush:
 	npx prisma db push
 
+ppushf:
+	npx prisma db push --force-reset
+
 pstudio:
 	npx prisma studio

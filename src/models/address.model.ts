@@ -22,10 +22,10 @@ export class AddressBookModel {
    * @param userId User wallet address
    * @returns Array of address book entries
    */
-  static async getAllEntries(userId: string) {
+  static async getAllEntries(user_id: string) {
     return prisma.addressBook.findMany({
       where: {
-        user_id: userId,
+        user_id,
       },
       orderBy: {
         created_at: 'desc',
@@ -39,25 +39,25 @@ export class AddressBookModel {
    * @param entryId Address book entry ID
    * @returns Address book entry if found
    */
-  static async getEntryById(userId: string, entryId: string) {
+  static async getEntryById(user_id: string, entry_id: string) {
     return prisma.addressBook.findFirst({
       where: {
-        id: entryId,
-        user_id: userId,
+        id: entry_id,
+        user_id,
       },
     })
   }
 
   /**
    * Get a specific address book entry by address
-   * @param userId User wallet address
+   * @param user_id User wallet address
    * @param address Address book entry address
    * @returns Address book entry if found
    */
-  static async getEntryByAddress(userId: string, address: string) {
+  static async getEntryByAddress(user_id: string, address: string) {
     return prisma.addressBook.findFirst({
       where: {
-        user_id: userId,
+        user_id,
         address,
       },
     })
@@ -69,10 +69,10 @@ export class AddressBookModel {
    * @param name Address book entry name
    * @returns Address book entry if found
    */
-  static async getEntryByName(userId: string, name: string) {
+  static async getEntryByName(user_id: string, name: string) {
     return prisma.addressBook.findFirst({
       where: {
-        user_id: userId,
+        user_id,
         name,
       },
     })
@@ -80,7 +80,7 @@ export class AddressBookModel {
 
   /**
    * Create a new address book entry
-   * @param userId User wallet address
+   * @param user_id User wallet address
    * @param entry Address book entry data
    * @returns Created address book entry
    */
@@ -114,10 +114,10 @@ export class AddressBookModel {
    * @param entry Updated address book entry data
    * @returns Updated address book entry
    */
-  static async updateEntry(entryId: string, entry: UpdateAddressBookDto) {
+  static async updateEntry(entry_id: string, entry: UpdateAddressBookDto) {
     return prisma.addressBook.update({
       where: {
-        id: entryId,
+        id: entry_id,
         user_id: entry.user_id,
       },
       data: {
@@ -137,11 +137,11 @@ export class AddressBookModel {
    * @param entryId Address book entry ID
    * @returns Deleted address book entry
    */
-  static async deleteEntry(userId: string, entryId: string) {
+  static async deleteEntry(user_id: string, entry_id: string) {
     return prisma.addressBook.delete({
       where: {
-        id: entryId,
-        user_id: userId,
+        id: entry_id,
+        user_id,
       },
     })
   }

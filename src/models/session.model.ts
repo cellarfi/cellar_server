@@ -69,9 +69,9 @@ export class SessionModel {
   /**
    * Get session by ID
    */
-  static async getSessionById(sessionId: string) {
+  static async getSessionById(session_id: string) {
     return prisma.session.findUnique({
-      where: { id: sessionId },
+      where: { id: session_id },
       include: {
         user: {
           select: {
@@ -89,9 +89,9 @@ export class SessionModel {
   /**
    * Get session by device ID
    */
-  static async getSessionByDeviceId(deviceId: string) {
+  static async getSessionByDeviceId(device_id: string) {
     return prisma.session.findUnique({
-      where: { device_id: deviceId },
+      where: { device_id },
       include: {
         user: {
           select: {
@@ -144,9 +144,9 @@ export class SessionModel {
   /**
    * Sign out a specific session (set status to SIGNED_OUT)
    */
-  static async signOutSession(sessionId: string) {
+  static async signOutSession(session_id: string) {
     return prisma.session.update({
-      where: { id: sessionId },
+      where: { id: session_id },
       data: {
         status: DeviceStatus.SIGNED_OUT,
       },
@@ -157,13 +157,13 @@ export class SessionModel {
    * Sign out all sessions for a user except the current one
    */
   static async signOutAllOtherSessions(
-    userId: string,
-    currentSessionId: string
+    user_id: string,
+    current_session_id: string
   ) {
     const result = await prisma.session.updateMany({
       where: {
-        user_id: userId,
-        id: { not: currentSessionId },
+        user_id,
+        id: { not: current_session_id },
         status: DeviceStatus.ACTIVE,
       },
       data: {
@@ -177,9 +177,9 @@ export class SessionModel {
   /**
    * Revoke a specific session
    */
-  static async revokeSession(sessionId: string) {
+  static async revokeSession(session_id: string) {
     return prisma.session.update({
-      where: { id: sessionId },
+      where: { id: session_id },
       data: {
         status: DeviceStatus.REVOKED,
       },
@@ -189,9 +189,9 @@ export class SessionModel {
   /**
    * Update last seen timestamp for a session
    */
-  static async updateLastSeen(sessionId: string) {
+  static async updateLastSeen(session_id: string) {
     return prisma.session.update({
-      where: { id: sessionId },
+      where: { id: session_id },
       data: {
         last_seen_at: new Date(),
       },
@@ -201,19 +201,19 @@ export class SessionModel {
   /**
    * Delete a session
    */
-  static async deleteSession(sessionId: string) {
+  static async deleteSession(session_id: string) {
     return prisma.session.delete({
-      where: { id: sessionId },
+      where: { id: session_id },
     })
   }
 
   /**
    * Get active sessions count for a user
    */
-  static async getActiveSessionsCount(userId: string) {
+  static async getActiveSessionsCount(user_id: string) {
     return prisma.session.count({
       where: {
-        user_id: userId,
+        user_id,
         status: DeviceStatus.ACTIVE,
       },
     })
@@ -222,14 +222,14 @@ export class SessionModel {
   /**
    * Clean up old sessions (older than specified days)
    */
-  static async cleanupOldSessions(daysOld: number = 30) {
-    const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - daysOld)
+  static async cleanupOldSessions(days_old: number = 30) {
+    const cutoff_date = new Date()
+    cutoff_date.setDate(cutoff_date.getDate() - days_old)
 
     const result = await prisma.session.deleteMany({
       where: {
         last_seen_at: {
-          lt: cutoffDate,
+          lt: cutoff_date,
         },
         status: {
           in: [DeviceStatus.SIGNED_OUT, DeviceStatus.REVOKED],

@@ -12,7 +12,7 @@ import {
   GetSignaturesForAssetParams,
   GetTokenAccountsParams,
   SearchAssetsParams,
-} from '../../types/aura/interface'
+} from '../types/aura/interface'
 
 config()
 const router = express.Router() as any
@@ -85,15 +85,15 @@ router.post(
   ): Promise<any> => {
     try {
       // Expect an array of asset IDs in the request body
-      const { assetIds } = req.body
+      const { asset_ids } = req.body
 
       // Validate input
-      if (!Array.isArray(assetIds)) {
-        return res.status(400).json({ error: 'assetIds must be an array' })
+      if (!Array.isArray(asset_ids)) {
+        return res.status(400).json({ error: 'asset_ids must be an array' })
       }
 
       const assets = await fetchRPC('getAssetBatch', {
-        ids: assetIds,
+        asset_ids,
       })
       res.json(assets)
     } catch (error) {
@@ -111,15 +111,15 @@ router.post(
   ): Promise<any> => {
     try {
       // Expect an array of asset IDs in the request body
-      const { assetIds } = req.body
+      const { asset_ids } = req.body
 
       // Validate input
-      if (!Array.isArray(assetIds)) {
-        return res.status(400).json({ error: 'assetIds must be an array' })
+      if (!Array.isArray(asset_ids)) {
+        return res.status(400).json({ error: 'asset_ids must be an array' })
       }
 
       const proofs = await fetchRPC('getAssetProofBatch', {
-        ids: assetIds,
+        asset_ids,
       })
       res.json(proofs)
     } catch (error) {

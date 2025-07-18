@@ -18,8 +18,7 @@ export const getProfile = async (
   res: Response
 ): Promise<void> => {
   try {
-    const user_id_parts = req.user!.id.split(':');
-    const user_id = user_id_parts[user_id_parts.length - 1];
+    const user_id = req.user!.id;
 
     // Parse include parameters from query string
     const includeParams = parseUserInclude(req.query);
@@ -119,7 +118,8 @@ export const createUser = async (
   res: Response
 ): Promise<void> => {
   try {
-    const id = req.user!.id.split(':').pop() || req.user!.id;
+    const id = req.user!.id;
+    if (!req.body.referred_by) delete req.body.referred_by;
 
     const { success, data, error } = await createUserSchema.safeParseAsync({
       ...req.body,
@@ -154,10 +154,24 @@ export const createUser = async (
     });
   } catch (err: any) {
     if (err.code === 'P2002') {
+      console.log(err);
       res.status(409).json({
         success: false,
         error: 'User already exists',
       });
+      return;
+    }
+
+    if (err.code === 'P2003') {
+      console.log('err.code', err);
+      if (err?.meta?.constraint === 'users_referred_by_fkey') {
+        res.status(409).json({
+          success: false,
+          error: 'Referral code is invalid',
+        });
+        return;
+      }
+
       return;
     }
 
@@ -221,7 +235,7 @@ export const updateUserDefaultWallet = async (
   res: Response
 ): Promise<void> => {
   try {
-    const id = req.user!.id.split(':').pop() || req.user!.id;
+    const id = req.user!.id;
 
     const { success, data, error } =
       await updateUserDefaultWalletSchema.safeParseAsync({
@@ -264,7 +278,7 @@ export const updateProfile = async (
   res: Response
 ): Promise<void> => {
   try {
-    const id = req.user!.id.split(':').pop() || req.user!.id;
+    const id = req.user!.id;
     const { success, data, error } = await updateUserSchema.safeParseAsync({
       ...req.body,
       user_id: id,
@@ -349,6 +363,66 @@ export const deleteUser = async (
     res.status(500).json({
       success: false,
       error: "An error occurred deleting the user's account",
+    });
+  }
+};
+
+export const searchUsers = async (
+  req: Request<{}, {}, {}, { query: string }>,
+  res: Response
+): Promise<void> => {
+  try {
+    const query = req.query.query;
+
+    if (!query) {
+      res.status(400).json({
+        success: false,
+        error: 'Search query is required',
+      });
+      return;
+    }
+
+    const users = await UsersModel.searchUser(query);
+
+    res.status(200).json({
+      success: true,
+      data: users,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred searching for users.',
+    });
+  }
+};
+
+export const getUserProfile = async (
+  req: Request<{ tag_name: string }, {}, {}, {}>,
+  res: Response
+): Promise<void> => {
+  try {
+    const user_id = req.user!.id;
+    const { tag_name } = req.params;
+
+    if (!tag_name) {
+      res.status(400).json({
+        success: false,
+        error: 'ID query is required',
+      });
+      return;
+    }
+
+    const data = await UsersModel.getUserProfile(tag_name, user_id);
+
+    res.status(200).json({
+      success: true,
+      data: data,
+    });
+  } catch (error) {
+    console.error('[getUserProfile] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred getting the user profile',
     });
   }
 };

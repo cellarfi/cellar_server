@@ -1,4 +1,6 @@
 import { SessionModel } from '@/models/session.model'
+import { PointsService } from '@/service/pointsService'
+import prismaService from '@/service/prismaService'
 import {
   CreateSessionDto,
   createSessionSchema,
@@ -9,6 +11,9 @@ import {
 } from '@/utils/dto/session.dto'
 import { Request, Response } from 'express'
 
+// Cache for tracking last daily login reward time per user
+const lastDailyLoginReward: Record<string, Date> = {}
+
 /**
  * Create a new session (add session when user logs in)
  */
@@ -17,11 +22,11 @@ export const addSession = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.user!.id
+    const user_id = req.user!.id
 
     const { success, data, error } = await createSessionSchema.safeParseAsync({
       ...req.body,
-      user_id: userId,
+      user_id,
     })
 
     if (!success) {
@@ -59,16 +64,20 @@ export const addSession = async (
  * Update an existing session
  */
 export const updateSession = async (
-  req: Request<{ sessionId: string }, {}, Omit<UpdateSessionDto, 'session_id'>>,
+  req: Request<
+    { session_id: string },
+    {},
+    Omit<UpdateSessionDto, 'session_id'>
+  >,
   res: Response
 ): Promise<void> => {
   try {
-    const { sessionId } = req.params
-    const userId = req.user!.id
+    const { session_id } = req.params
+    const user_id = req.user!.id
 
     // Verify session belongs to current user
-    const existingSession = await SessionModel.getSessionById(sessionId)
-    if (!existingSession || existingSession.user_id !== userId) {
+    const existingSession = await SessionModel.getSessionById(session_id)
+    if (!existingSession || existingSession.user_id !== user_id) {
       res.status(404).json({
         success: false,
         error: 'Session not found or access denied',
@@ -77,7 +86,7 @@ export const updateSession = async (
     }
 
     const { success, data, error } = await updateSessionSchema.safeParseAsync({
-      session_id: sessionId,
+      session_id,
       ...req.body,
     })
 
@@ -120,11 +129,11 @@ export const getUserSessions = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.user!.id
+    const user_id = req.user!.id
     const { device_id, status } = req.query
 
     const queryData: SessionQueryDto = {
-      user_id: userId,
+      user_id,
     }
 
     if (device_id) queryData.device_id = device_id
@@ -161,16 +170,16 @@ export const getUserSessions = async (
  * Get a specific session by ID
  */
 export const getSession = async (
-  req: Request<{ sessionId: string }>,
+  req: Request<{ session_id: string }>,
   res: Response
 ): Promise<void> => {
   try {
-    const { sessionId } = req.params
-    const userId = req.user!.id
+    const { session_id } = req.params
+    const user_id = req.user!.id
 
-    const session = await SessionModel.getSessionById(sessionId)
+    const session = await SessionModel.getSessionById(session_id)
 
-    if (!session || session.user_id !== userId) {
+    if (!session || session.user_id !== user_id) {
       res.status(404).json({
         success: false,
         error: 'Session not found or access denied',
@@ -195,16 +204,16 @@ export const getSession = async (
  * Revoke a specific session
  */
 export const revokeSession = async (
-  req: Request<{ sessionId: string }>,
+  req: Request<{ session_id: string }>,
   res: Response
 ): Promise<void> => {
   try {
-    const { sessionId } = req.params
-    const userId = req.user!.id
+    const { session_id } = req.params
+    const user_id = req.user!.id
 
     // Verify session belongs to current user
-    const existingSession = await SessionModel.getSessionById(sessionId)
-    if (!existingSession || existingSession.user_id !== userId) {
+    const existingSession = await SessionModel.getSessionById(session_id)
+    if (!existingSession || existingSession.user_id !== user_id) {
       res.status(404).json({
         success: false,
         error: 'Session not found or access denied',
@@ -212,7 +221,7 @@ export const revokeSession = async (
       return
     }
 
-    await SessionModel.revokeSession(sessionId)
+    await SessionModel.revokeSession(session_id)
 
     res.json({
       success: true,
@@ -239,14 +248,14 @@ export const revokeSession = async (
  * Revoke all sessions except the current one
  */
 export const revokeAllSessions = async (
-  req: Request<{}, {}, { currentSessionId?: string }>,
+  req: Request<{}, {}, { current_session_id?: string }>,
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.user!.id
-    const { currentSessionId } = req.body
+    const user_id = req.user!.id
+    const { current_session_id } = req.body
 
-    if (!currentSessionId) {
+    if (!current_session_id) {
       res.status(400).json({
         success: false,
         error: 'Current session ID is required',
@@ -255,8 +264,8 @@ export const revokeAllSessions = async (
     }
 
     // Verify current session belongs to user
-    const currentSession = await SessionModel.getSessionById(currentSessionId)
-    if (!currentSession || currentSession.user_id !== userId) {
+    const currentSession = await SessionModel.getSessionById(current_session_id)
+    if (!currentSession || currentSession.user_id !== user_id) {
       res.status(400).json({
         success: false,
         error: 'Invalid current session ID',
@@ -265,8 +274,8 @@ export const revokeAllSessions = async (
     }
 
     const result = await SessionModel.signOutAllOtherSessions(
-      userId,
-      currentSessionId
+      user_id,
+      current_session_id
     )
 
     res.json({
@@ -286,16 +295,16 @@ export const revokeAllSessions = async (
  * Sign out a specific session (set status to SIGNED_OUT)
  */
 export const signOutSession = async (
-  req: Request<{ sessionId: string }>,
+  req: Request<{ session_id: string }>,
   res: Response
 ): Promise<void> => {
   try {
-    const { sessionId } = req.params
-    const userId = req.user!.id
+    const { session_id } = req.params
+    const user_id = req.user!.id
 
     // Verify session belongs to current user
-    const existingSession = await SessionModel.getSessionById(sessionId)
-    if (!existingSession || existingSession.user_id !== userId) {
+    const existingSession = await SessionModel.getSessionById(session_id)
+    if (!existingSession || existingSession.user_id !== user_id) {
       res.status(404).json({
         success: false,
         error: 'Session not found or access denied',
@@ -303,7 +312,7 @@ export const signOutSession = async (
       return
     }
 
-    await SessionModel.signOutSession(sessionId)
+    await SessionModel.signOutSession(session_id)
 
     res.json({
       success: true,
@@ -330,16 +339,16 @@ export const signOutSession = async (
  * Update last seen timestamp for a session
  */
 export const updateLastSeen = async (
-  req: Request<{ sessionId: string }>,
+  req: Request<{ session_id: string }>,
   res: Response
 ): Promise<void> => {
   try {
-    const { sessionId } = req.params
-    const userId = req.user!.id
+    const { session_id } = req.params
+    const user_id = req.user!.id
 
     // Verify session belongs to current user
-    const existingSession = await SessionModel.getSessionById(sessionId)
-    if (!existingSession || existingSession.user_id !== userId) {
+    const existingSession = await SessionModel.getSessionById(session_id)
+    if (!existingSession || existingSession.user_id !== user_id) {
       res.status(404).json({
         success: false,
         error: 'Session not found or access denied',
@@ -347,8 +356,51 @@ export const updateLastSeen = async (
       return
     }
 
-    await SessionModel.updateLastSeen(sessionId)
+    await SessionModel.updateLastSeen(session_id)
 
+    // Check and award daily login points if applicable
+    try {
+      // Check if user has already received daily login points today
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()) // Midnight today
+      const lastReward = lastDailyLoginReward[user_id]
+      
+      // Award points if they haven't received daily login points today yet
+      if (!lastReward || lastReward < today) {
+        // Check if this is their first activity of the day
+        const startOfDay = today.toISOString()
+        const endOfDay = new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()
+        
+        // Check if they already have daily login points for today
+        const existingDailyLogin = await prismaService.prisma.point.findFirst({
+          where: {
+            user_id,
+            source: 'DAILY_LOGIN',
+            created_at: {
+              gte: startOfDay,
+              lt: endOfDay
+            }
+          }
+        })
+        
+        if (!existingDailyLogin) {
+          // Award daily login points
+          await PointsService.awardPoints(user_id, 'DAILY_LOGIN', { 
+            login_date: now.toISOString(),
+            session_id
+          })
+          
+          // Update the cache
+          lastDailyLoginReward[user_id] = now
+          
+          console.log(`[updateLastSeen] Awarded daily login points to user ${user_id}`)
+        }
+      }
+    } catch (pointsError) {
+      // Log but don't affect the main functionality
+      console.error('[updateLastSeen] Error awarding daily login points:', pointsError)
+    }
+    
     res.json({
       success: true,
       message: 'Last seen updated successfully',
@@ -374,16 +426,16 @@ export const updateLastSeen = async (
  * Delete a session completely
  */
 export const deleteSession = async (
-  req: Request<{ sessionId: string }>,
+  req: Request<{ session_id: string }>,
   res: Response
 ): Promise<void> => {
   try {
-    const { sessionId } = req.params
-    const userId = req.user!.id
+    const { session_id } = req.params
+    const user_id = req.user!.id
 
     // Verify session belongs to current user
-    const existingSession = await SessionModel.getSessionById(sessionId)
-    if (!existingSession || existingSession.user_id !== userId) {
+    const existingSession = await SessionModel.getSessionById(session_id)
+    if (!existingSession || existingSession.user_id !== user_id) {
       res.status(404).json({
         success: false,
         error: 'Session not found or access denied',
@@ -391,7 +443,7 @@ export const deleteSession = async (
       return
     }
 
-    await SessionModel.deleteSession(sessionId)
+    await SessionModel.deleteSession(session_id)
 
     res.status(204).json({
       success: true,
@@ -422,9 +474,9 @@ export const getActiveSessionsCount = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.user!.id
+    const user_id = req.user!.id
 
-    const count = await SessionModel.getActiveSessionsCount(userId)
+    const count = await SessionModel.getActiveSessionsCount(user_id)
 
     res.json({
       success: true,
