@@ -240,8 +240,8 @@ export class PointsModel {
             amount: 'desc',
           },
         },
-        take: limit,
-        skip: offset,
+        take: Number(limit),
+        skip: Number(offset),
       });
 
       // Get user details for each user_id
@@ -275,7 +275,7 @@ export class PointsModel {
         const userPoint = userPoints.find((up) => up.user_id === entry.user_id);
 
         return {
-          rank: offset + index + 1,
+          rank: Number(offset) + index + 1,
           user_id: entry.user_id,
           tag_name: user?.tag_name || '',
           display_name: user?.display_name || '',
@@ -324,8 +324,8 @@ export class PointsModel {
       orderBy: {
         balance: 'desc', // Order by highest balance first
       },
-      skip: offset,
-      take: limit,
+      skip: Number(offset),
+      take: Number(limit),
     });
 
     // Get total count for pagination
@@ -333,7 +333,7 @@ export class PointsModel {
 
     // Format the results
     const formattedLeaderboard = leaderboard.map((entry, index) => ({
-      rank: offset + index + 1,
+      rank: Number(offset) + index + 1,
       user_id: entry.user_id,
       tag_name: entry.user.tag_name || '',
       display_name: entry.user.display_name || '',
