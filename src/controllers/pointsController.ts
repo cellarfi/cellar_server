@@ -1,9 +1,49 @@
 import { PointsModel } from '@/models/points.model';
 import {
+  GetLeaderboardDto,
+  getLeaderboardDtoSchema,
   GetPointHistoryDto,
   getPointHistoryDtoSchema,
 } from '@/utils/dto/points.dto';
 import { Request, Response } from 'express';
+
+/**
+ * Get user points leaderboard
+ * Returns a paginated list of top users by points
+ */
+export const getLeaderboard = async (
+  req: Request<{}, {}, {}, GetLeaderboardDto>,
+  res: Response
+): Promise<void> => {
+  try {
+    // Parse and validate query parameters
+    const { success, data, error } = getLeaderboardDtoSchema.safeParse(
+      req.query
+    );
+
+    if (!success) {
+      res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+      return;
+    }
+
+    // Get leaderboard data from the model
+    const leaderboardData = await PointsModel.getLeaderboard(data);
+
+    res.status(200).json({
+      success: true,
+      data: leaderboardData,
+    });
+  } catch (error) {
+    console.error('[getLeaderboard] Error fetching leaderboard:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch leaderboard data',
+    });
+  }
+};
 
 /**
  * Get point balance and details for a user
@@ -58,12 +98,22 @@ export const getUserPoints = async (
  * Get point history for a user with filters
  */
 export const getPointHistory = async (
-  req: Request<{ user_id?: string }, {}, {}, any>,
+  req: Request<
+    {},
+    {},
+    {},
+    {
+      source?: string;
+      start_date?: string;
+      end_date?: string;
+      limit?: string;
+      offset?: string;
+    }
+  >,
   res: Response
 ): Promise<void> => {
   try {
-    // Use the requested user_id if provided in params, otherwise use query param, finally use authenticated user
-    const user_id = req.params.user_id || req.query.user_id || req.user?.id;
+    const user_id = req.user?.id;
 
     if (!user_id) {
       res.status(400).json({
