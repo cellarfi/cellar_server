@@ -222,6 +222,11 @@ export class FollowModel {
   static async suggestedAccounts(user_id: string) {
     // Get users with highest number of followers
     const topUsers = await prisma.user.findMany({
+      where: {
+        id: {
+          not: user_id, // Exclude the current user
+        },
+      },
       select: {
         id: true,
         display_name: true,
@@ -237,6 +242,15 @@ export class FollowModel {
         followers: {
           _count: 'desc',
         },
+        post: {
+          _count: 'desc'
+        },
+        comments: {
+          _count: 'desc'
+        },
+        donations: {
+         _count: 'desc'
+        }
       },
       take: 10, // Get top 10 users
     })
