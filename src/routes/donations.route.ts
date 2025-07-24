@@ -7,7 +7,7 @@ import {
   getUserDonations,
   verifyDonation,
 } from '@/controllers/donationController'
-import { authMiddleware } from '@/middleware/auth.middleware'
+import { authMiddleware() } from '@/middleware/auth.middleware'
 import { Router } from 'express'
 
 const router = Router()
@@ -28,7 +28,7 @@ router.get('/post/:post_id/top-donors', getTopDonors)
 router.get('/recent', getRecentDonations)
 
 // Protected routes (require authentication)
-router.use(authMiddleware)
+router.use(authMiddleware()())
 
 // Get donations made by the current user
 router.get('/my-donations', getUserDonations)

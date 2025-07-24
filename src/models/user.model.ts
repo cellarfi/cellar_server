@@ -174,11 +174,21 @@ export class UsersModel {
         about: true,
         _count: {
           select: {
-            Followers: true,
-            Following: true,
-            Post: true,
+            followers: true,
+            following: true,
+            post: true
           },
         },
+        post: {
+          select: {
+            id: true,
+            content: true,
+            created_at: true
+          },
+          orderBy: {
+            created_at: 'desc'
+          }
+        }
       },
     })
 
