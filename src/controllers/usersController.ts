@@ -1,6 +1,6 @@
-import { ERROR_MESSAGES } from "@/constants/app.constants";
-import { UsersModel } from "@/models/user.model";
-import { parseUserInclude, UserIncludeQuery } from "@/types/include.types";
+import { ERROR_MESSAGES } from '@/constants/app.constants';
+import { UsersModel } from '@/models/user.model';
+import { parseUserInclude, UserIncludeQuery } from '@/types/include.types';
 import {
   CreateUserDto,
   createUserSchema,
@@ -10,8 +10,8 @@ import {
   updateUserDefaultWalletSchema,
   UpdateUserDto,
   updateUserSchema,
-} from "@/utils/dto/users.dto";
-import { Request, Response } from "express";
+} from '@/utils/dto/users.dto';
+import { Request, Response } from 'express';
 
 export const getProfile = async (
   req: Request<{}, {}, {}, UserIncludeQuery>,
@@ -28,7 +28,7 @@ export const getProfile = async (
     if (!user) {
       res.status(404).json({
         success: false,
-        error: "User not found",
+        error: 'User not found',
       });
       return;
     }
@@ -38,10 +38,10 @@ export const getProfile = async (
       data: user,
     });
   } catch (err: any) {
-    console.error("[getProfile] Error:", err);
+    console.error('[getProfile] Error:', err);
     res.status(500).json({
       success: false,
-      error: "An error occurred retrieving the user profile",
+      error: 'An error occurred retrieving the user profile',
     });
   }
 };
@@ -55,7 +55,7 @@ export const getUserByTagName = async (
     if (!tag_name) {
       res.status(400).json({
         success: false,
-        error: "Tag name is required",
+        error: 'Tag name is required',
       });
       return;
     }
@@ -67,7 +67,7 @@ export const getUserByTagName = async (
     if (!user) {
       res.status(404).json({
         success: false,
-        error: "User not found",
+        error: 'User not found',
       });
       return;
     }
@@ -77,10 +77,10 @@ export const getUserByTagName = async (
       data: user,
     });
   } catch (err: any) {
-    console.error("[getUserByTagName] Error:", err);
+    console.error('[getUserByTagName] Error:', err);
     res.status(500).json({
       success: false,
-      error: "An error occurred retrieving the user by tag name",
+      error: 'An error occurred retrieving the user by tag name',
     });
   }
 };
@@ -94,7 +94,7 @@ export const checkIfTagNameExists = async (
     if (!tag_name) {
       res.status(400).json({
         success: false,
-        error: "Tag name is required",
+        error: 'Tag name is required',
       });
       return;
     }
@@ -105,10 +105,10 @@ export const checkIfTagNameExists = async (
       exists: !!user,
     });
   } catch (err: any) {
-    console.error("[tagNameExists] Error:", err);
+    console.error('[tagNameExists] Error:', err);
     res.status(500).json({
       success: false,
-      error: "An error occurred",
+      error: 'An error occurred',
     });
   }
 };
@@ -153,21 +153,21 @@ export const createUser = async (
       },
     });
   } catch (err: any) {
-    if (err.code === "P2002") {
+    if (err.code === 'P2002') {
       console.log(err);
       res.status(409).json({
         success: false,
-        error: "User already exists",
+        error: 'User already exists',
       });
       return;
     }
 
-    if (err.code === "P2003") {
-      console.log("err.code", err);
-      if (err?.meta?.constraint === "users_referred_by_fkey") {
+    if (err.code === 'P2003') {
+      console.log('err.code', err);
+      if (err?.meta?.constraint === 'users_referred_by_fkey') {
         res.status(409).json({
           success: false,
-          error: "Referral code is invalid",
+          error: 'Referral code is invalid',
         });
         return;
       }
@@ -175,10 +175,10 @@ export const createUser = async (
       return;
     }
 
-    console.error("[createUser] Error:", err);
+    console.error('[createUser] Error:', err);
     res.status(500).json({
       success: false,
-      error: "An error occurred creating the user",
+      error: 'An error occurred creating the user',
     });
   }
 };
@@ -207,25 +207,25 @@ export const createUserWallet = async (
       data: wallet,
     });
   } catch (err: any) {
-    console.error("[createUserWallet] Error:", err);
-    if (err.code === "P2002") {
+    console.error('[createUserWallet] Error:', err);
+    if (err.code === 'P2002') {
       res.status(409).json({
         success: false,
-        error: "User wallet already exists",
+        error: 'User wallet already exists',
       });
       return;
     }
     if (err.code === "P2025") {
       res.status(404).json({
         success: false,
-        error: "User not found",
+        error: 'User not found',
       });
       return;
     }
 
     res.status(500).json({
       success: false,
-      error: "An error occurred creating the user wallet",
+      error: 'An error occurred creating the user wallet',
     });
   }
 };
@@ -257,18 +257,18 @@ export const updateUserDefaultWallet = async (
       data: wallet,
     });
   } catch (err: any) {
-    console.error("[updateUserDefaultWallet] Error:", err);
-    if (err.code === "P2025") {
+    console.error('[updateUserDefaultWallet] Error:', err);
+    if (err.code === 'P2025') {
       res.status(404).json({
         success: false,
-        error: "User or wallet not found",
+        error: 'User or wallet not found',
       });
       return;
     }
 
     res.status(500).json({
       success: false,
-      error: "An error occurred updating the user default wallet",
+      error: 'An error occurred updating the user default wallet',
     });
   }
 };
@@ -300,12 +300,12 @@ export const updateProfile = async (
       data: updatedUser,
     });
   } catch (err: any) {
-    console.error("[updateProfile] Error:", err);
+    console.error('[updateProfile] Error:', err);
 
     if (err.code === "P2025") {
       res.status(404).json({
         success: false,
-        error: "User not found",
+        error: 'User not found',
       });
       return;
     }
@@ -354,12 +354,12 @@ export const deleteUser = async (
     if (err.code === "P2025") {
       res.status(404).json({
         success: false,
-        error: "User not found",
+        error: 'User not found',
       });
       return;
     }
 
-    console.error("[deleteUser] Error:", err);
+    console.error('[deleteUser] Error:', err);
     res.status(500).json({
       success: false,
       error: "An error occurred deleting the user's account",
@@ -377,7 +377,7 @@ export const searchUsers = async (
     if (!query) {
       res.status(400).json({
         success: false,
-        error: "Search query is required",
+        error: 'Search query is required',
       });
       return;
     }
@@ -391,7 +391,7 @@ export const searchUsers = async (
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: "An error occurred searching for users.",
+      error: 'An error occurred searching for users.',
     });
   }
 };
@@ -401,14 +401,13 @@ export const getUserProfile = async (
   res: Response
 ): Promise<void> => {
   try {
-    const user = req.user!;
-    const user_id = user.id;
+    const user_id = req.user!.id;
     const { tag_name } = req.params;
 
     if (!tag_name) {
       res.status(400).json({
         success: false,
-        error: "ID query is required",
+        error: 'ID query is required',
       });
       return;
     }
@@ -420,10 +419,10 @@ export const getUserProfile = async (
       data: data,
     });
   } catch (error) {
-    console.error("[getUserProfile] Error:", error);
+    console.error('[getUserProfile] Error:', error);
     res.status(500).json({
       success: false,
-      error: "An error occurred getting the user profile",
+      error: 'An error occurred getting the user profile',
     });
   }
 };

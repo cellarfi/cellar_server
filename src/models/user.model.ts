@@ -1,28 +1,28 @@
 import {
   ERROR_MESSAGES,
   TAG_NAME_UPDATE_TIME_LIMIT,
-} from '@/constants/app.constants'
-import prismaService from '@/service/prismaService'
+} from '@/constants/app.constants';
+import prismaService from '@/service/prismaService';
 import {
   CreateUserDto,
   CreateUserWalletDto,
   UpdateUserDefaultWalletDto,
   UpdateUserDto,
-} from '@/utils/dto/users.dto'
-import { generateReferralCode } from '@/utils/nanoid.util'
+} from '@/utils/dto/users.dto';
+import { generateReferralCode } from '@/utils/nanoid.util';
 
-const prisma = prismaService.prisma
+const prisma = prismaService.prisma;
 
 export class UsersModel {
   static async getUserById(id: string, include?: Record<string, boolean>) {
-    const user_id = id
+    const user_id = id;
 
     return prisma.user.findUnique({
       where: {
         id: user_id,
       },
       include,
-    })
+    });
   }
 
   static async getUserByTagName(
@@ -34,14 +34,14 @@ export class UsersModel {
         tag_name,
       },
       include,
-    })
+    });
   }
 
   static async checkTagNameExists(tag_name: string): Promise<boolean> {
     const result = await prisma.$queryRaw<[{ exists: boolean }]>`
       SELECT EXISTS(SELECT 1 FROM "User" WHERE "tag_name" = ${tag_name}) as exists
-    `
-    return result[0].exists
+    `;
+    return result[0].exists;
   }
 
   static async verifyReferralCode(referral_code: string) {
@@ -49,7 +49,7 @@ export class UsersModel {
       where: {
         referral_code,
       },
-    })
+    });
   }
 
   static async checkReferralCodeExists(
@@ -57,8 +57,8 @@ export class UsersModel {
   ): Promise<boolean> {
     const result = await prisma.$queryRaw<[{ exists: boolean }]>`
       SELECT EXISTS(SELECT 1 FROM "User" WHERE "referral_code" = ${referral_code}) as exists
-    `
-    return result[0].exists
+    `;
+    return result[0].exists;
   }
 
   static async createUser(dto: CreateUserDto) {
@@ -75,7 +75,7 @@ export class UsersModel {
         referral_code: generateReferralCode(),
         referred_by: dto.referred_by,
       },
-    })
+    });
   }
 
   static async createUserWallet(dto: CreateUserWalletDto) {
@@ -85,7 +85,7 @@ export class UsersModel {
         chain_type: dto.chain_type,
         address: dto.address,
       },
-    })
+    });
   }
 
   static async updateUserDefaultWallet(dto: UpdateUserDefaultWalletDto) {
@@ -97,7 +97,7 @@ export class UsersModel {
       data: {
         is_default: true,
       },
-    })
+    });
   }
 
   static async updateUser(id: string, dto: UpdateUserDto) {
@@ -105,15 +105,15 @@ export class UsersModel {
     if (dto.tag_name) {
       const user = await prisma.user.findUnique({
         where: { id },
-      })
+      });
 
       if (user?.tag_name_updated_at) {
-        const lastUpdate = new Date(user.tag_name_updated_at).getTime()
-        const now = Date.now()
-        const timeSinceLastUpdate = now - lastUpdate
+        const lastUpdate = new Date(user.tag_name_updated_at).getTime();
+        const now = Date.now();
+        const timeSinceLastUpdate = now - lastUpdate;
 
         if (timeSinceLastUpdate < TAG_NAME_UPDATE_TIME_LIMIT) {
-          throw new Error(ERROR_MESSAGES.TAG_NAME_UPDATE_LIMIT)
+          throw new Error(ERROR_MESSAGES.TAG_NAME_UPDATE_LIMIT);
         }
       }
     }
@@ -122,18 +122,18 @@ export class UsersModel {
       display_name: dto.display_name,
       profile_picture_url: dto.profile_picture_url,
       about: dto.about,
-    }
+    };
 
     // Only update tag_name_updated_at if tag_name is being updated
     if (dto.tag_name) {
-      updateData.tag_name = dto.tag_name
-      updateData.tag_name_updated_at = new Date()
+      updateData.tag_name = dto.tag_name;
+      updateData.tag_name_updated_at = new Date();
     }
 
     return prisma.user.update({
       where: { id },
       data: updateData,
-    })
+    });
   }
 
   static async deleteUser(user_id: string) {
@@ -141,7 +141,7 @@ export class UsersModel {
       where: {
         id: user_id,
       },
-    })
+    });
   }
 
   static async searchUser(query: string) {
@@ -158,7 +158,7 @@ export class UsersModel {
         tag_name: true,
         profile_picture_url: true,
       },
-    })
+    });
   }
 
   static async getUserProfile(param: string, viewer_id?: string) {
@@ -176,7 +176,7 @@ export class UsersModel {
           select: {
             followers: true,
             following: true,
-            post: true
+            post: true,
           },
         },
         post: {
@@ -190,26 +190,26 @@ export class UsersModel {
           }
         }
       },
-    })
+    });
 
     if (!user) {
-      throw new Error('User not found')
+      throw new Error('User not found');
     }
 
-    let isFollowing = false
+    let isFollowing = false;
     if (viewer_id && viewer_id !== param) {
       const existingFollow = await prisma.follower.findFirst({
         where: {
           user_id: param,
           follower_id: viewer_id,
         },
-      })
-      isFollowing = !!existingFollow
+      });
+      isFollowing = !!existingFollow;
     }
 
     return {
       user,
       isFollowing,
-    }
+    };
   }
 }

@@ -2,6 +2,7 @@ import { FundingMetaModel } from "@/models/fundingMeta.model";
 import { PostModel } from "@/models/posts.model";
 import { TokenMetaModel } from "@/models/tokenMeta.model";
 import prismaService from "@/service/prismaService";
+import { PointsService } from '@/service/pointsService'
 import {
   createUnifiedPost,
   CreateUnifiedPostDto,
@@ -389,6 +390,21 @@ export const createPost = async (
     }
 
     let result: any = { ...post };
+
+    // Award points for post creation based on post type
+    try {
+      // Award different points based on post type
+      if (data.post_type === 'REGULAR') {
+        await PointsService.awardPoints(user_id, 'POST_CREATION', { post_id: post.id, post_type: data.post_type });
+      } else if (data.post_type === 'DONATION') {
+        await PointsService.awardPoints(user_id, 'DONATION', { post_id: post.id, post_type: data.post_type });
+      } else if (data.post_type === 'TOKEN_CALL') {
+        await PointsService.awardPoints(user_id, 'TOKEN_LAUNCH', { post_id: post.id, post_type: data.post_type });
+      }
+    } catch (pointsError) {
+      // Log but don't prevent post creation if points can't be awarded
+      console.error('[createPost] Error awarding points:', pointsError);
+    }
 
     // Handle specific post types with their metadata
     switch (data.post_type) {

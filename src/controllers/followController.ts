@@ -1,4 +1,5 @@
 import { FollowModel } from '@/models/follow.model'
+import { PointsService } from '@/service/pointsService'
 import { Request, Response } from 'express'
 
 export const suggestedAccounts = async (
@@ -78,6 +79,18 @@ export const followUser = async (
     }
 
     const data = await FollowModel.followUser(user_id, id)
+
+    // Award points for following a user
+    try {
+      // Award points to the user who followed
+      await PointsService.awardPoints(user_id, 'USER_FOLLOW', { followed_user_id: id })
+      
+      // Award points to the user being followed (they're gaining a follower)
+      await PointsService.awardPoints(id, 'USER_FOLLOW', { follower_user_id: user_id })
+    } catch (pointsError) {
+      // Log but don't prevent follow if points can't be awarded
+      console.error('[followUser] Error awarding points:', pointsError)
+    }
 
     res.status(200).json({
       success: true,
