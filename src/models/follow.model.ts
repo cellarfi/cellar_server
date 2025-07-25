@@ -43,7 +43,7 @@ export class FollowModel {
     }
   }
 
-  static async getFollowingPosts(user_id: string) {
+  static async getFollowingPosts(user_id: string, take: number, skip: number) {
     // Get the list of users the current user is following
     const following = await prisma.follower.findMany({
       where: {
@@ -65,28 +65,122 @@ export class FollowModel {
           in: following_ids,
         },
       },
-      orderBy: {
-        created_at: 'desc',
-      },
       include: {
+        comment: true,
+        _count: { select: { comment: true, like: true } },
         user: {
           select: {
             id: true,
-            display_name: true,
             tag_name: true,
+            display_name: true,
             profile_picture_url: true,
+            wallets: { select: { address: true } },
           },
         },
-        _count: {
+        funding_meta: {
           select: {
-            like: true,
-            comment: true,
+            target_amount: true,
+            current_amount: true,
+            wallet_address: true,
+            chain_type: true,
+            token_symbol: true,
+            token_address: true,
+            deadline: true,
+            status: true,
           },
         },
+        token_meta: {
+          select: {
+            token_name: true,
+            token_symbol: true,
+            token_address: true,
+            chain_type: true,
+            logo_url: true,
+            launch_date: true,
+            initial_price: true,
+            target_price: true,
+            market_cap: true,
+            description: true,
+          },
+        },
+      },
+      take,
+      skip,
+      orderBy: {
+        created_at: 'desc',
       },
     });
 
     return posts;
+  }
+
+  static async getFollowingPostsCount(user_id: string) {
+    // Get the list of users the current user is following
+    const following = await prisma.follower.findMany({
+      where: {
+        follower_id: user_id,
+      },
+      select: {
+        user_id: true,
+      },
+    })
+
+    // Extract the user IDs of the followed users
+    const following_ids = following.map((f) => f.user_id)
+
+    // Get posts from followed users, ordered by most recent
+    const posts = await prisma.post.findMany({
+      where: {
+        user_id: {
+          // Fixed: use userId instead of ownerId
+          in: following_ids,
+        },
+      },
+      include: {
+        comment: true,
+        _count: { select: { comment: true, like: true } },
+        user: {
+          select: {
+            id: true,
+            tag_name: true,
+            display_name: true,
+            profile_picture_url: true,
+            wallets: { select: { address: true } },
+          },
+        },
+        funding_meta: {
+          select: {
+            target_amount: true,
+            current_amount: true,
+            wallet_address: true,
+            chain_type: true,
+            token_symbol: true,
+            token_address: true,
+            deadline: true,
+            status: true,
+          },
+        },
+        token_meta: {
+          select: {
+            token_name: true,
+            token_symbol: true,
+            token_address: true,
+            chain_type: true,
+            logo_url: true,
+            launch_date: true,
+            initial_price: true,
+            target_price: true,
+            market_cap: true,
+            description: true,
+          },
+        },
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    })
+
+    return posts.length
   }
 
   static async getFollowers(user_id: string) {
@@ -128,6 +222,11 @@ export class FollowModel {
   static async suggestedAccounts(user_id: string) {
     // Get users with highest number of followers
     const topUsers = await prisma.user.findMany({
+      where: {
+        id: {
+          not: user_id, // Exclude the current user
+        },
+      },
       select: {
         id: true,
         display_name: true,
@@ -143,6 +242,15 @@ export class FollowModel {
         followers: {
           _count: 'desc',
         },
+        post: {
+          _count: 'desc'
+        },
+        comments: {
+          _count: 'desc'
+        },
+        donations: {
+         _count: 'desc'
+        }
       },
       take: 10, // Get top 10 users
     });

@@ -11,6 +11,7 @@ export const addLike = async (
     const { post_id } = req.params;
     const user = req.user!;
     const user_id = user.id;
+    console.log(post_id)
 
     if (!post_id) {
       res.status(404).json({
