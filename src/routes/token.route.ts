@@ -18,6 +18,6 @@ router.get('/ohlcv/:tokenAddress', getOHLCV)
 router.get('/trending', getTrendingTokens)
 
 // Token send route - requires authentication
-router.post('/send/record', authMiddleware, recordTokenSend)
+router.post('/send/record', authMiddleware(), recordTokenSend)
 
 export default router

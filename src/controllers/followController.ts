@@ -25,22 +25,31 @@ export const suggestedAccounts = async (
 }
 
 export const getFollowingPosts = async (
-  req: Request<{}, {}, {}, {page: number, pageSize: number}>,
+  req: Request<{}, {}, {}, { page?: string; pageSize?: string }>,
   res: Response
 ): Promise<void> => {
-  const user = req.user!
-  const user_id = user.id;
-
-  // Get pagination data from query parameter
-  const page = Number(req.query.page) || 10;
-  const pageSize = Number(req.query.pageSize) || 1;
-
-  const skip = (page - 1) * pageSize;
-  const take = pageSize;
-  const totalPosts = await FollowModel.getFollowingPostsCount(user_id);
-  const totalPages = Math.ceil(totalPosts / pageSize);
-  
   try {
+    const user = req.user!;
+    const user_id = user.id;
+
+    // Get pagination data from query parameters, default page=1, pageSize=10
+    const page = req.query.page ? Number(req.query.page) : 1;
+    const pageSize = req.query.pageSize ? Number(req.query.pageSize) : 10;
+
+    if (isNaN(page) || page < 1 || isNaN(pageSize) || pageSize < 1) {
+      res.status(400).json({
+        success: false,
+        error: 'Invalid pagination parameters.',
+      });
+      return;
+    }
+
+    const skip = (page - 1) * pageSize;
+    const take = pageSize;
+
+    const totalPosts = await FollowModel.getFollowingPostsCount(user_id);
+    const totalPages = Math.ceil(totalPosts / pageSize);
+
     const posts = await FollowModel.getFollowingPosts(user_id, take, skip);
 
     res.status(200).json({
@@ -50,16 +59,17 @@ export const getFollowingPosts = async (
         page,
         pageSize,
         totalPosts,
-        totalPages
-      }
-    })
+        totalPages,
+      },
+    });
   } catch (error) {
+    console.error('Error fetching following posts:', error);
     res.status(500).json({
       success: false,
       error: 'An error occurred fetching the posts.',
-    })
+    });
   }
-}
+};
 
 export const followUser = async (
   req: Request<{}, {}, { user_id: string }>,
