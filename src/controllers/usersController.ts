@@ -215,7 +215,7 @@ export const createUserWallet = async (
       });
       return;
     }
-    if (err.code === 'P2025') {
+    if (err.code === "P2025") {
       res.status(404).json({
         success: false,
         error: 'User not found',
@@ -302,7 +302,7 @@ export const updateProfile = async (
   } catch (err: any) {
     console.error('[updateProfile] Error:', err);
 
-    if (err.code === 'P2025') {
+    if (err.code === "P2025") {
       res.status(404).json({
         success: false,
         error: 'User not found',
@@ -351,7 +351,7 @@ export const deleteUser = async (
 
     res.status(204);
   } catch (err: any) {
-    if (err.code === 'P2025') {
+    if (err.code === "P2025") {
       res.status(404).json({
         success: false,
         error: 'User not found',

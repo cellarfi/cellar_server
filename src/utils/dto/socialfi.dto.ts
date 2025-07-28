@@ -52,6 +52,7 @@ export const createCommentSchema = z.object({
   post_id: z.string(),
   text: z.string(),
   user_id: z.string(),
+  parent_id: z.string().optional()
 })
 
 export const deleteLike = z.object({

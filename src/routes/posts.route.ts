@@ -1,5 +1,6 @@
 import {
   createPost,
+  followersPosts,
   getActiveFundraisingPosts,
   getFundingStats,
   getFundraisingPosts,
@@ -22,7 +23,6 @@ import { Router } from 'express'
 const router = Router()
 
 // Public routes
-router.get('/trending', trendingPosts)
 router.get('/fundraising', getFundraisingPosts)
 router.get('/fundraising/active', getActiveFundraisingPosts)
 router.get('/token-calls', getTokenCalls)
@@ -30,17 +30,24 @@ router.get('/token-calls/trending', getTrendingTokenCalls)
 router.get('/token-calls/search', searchTokenCalls)
 router.get('/token-calls/address/:token_address', getTokenCallByAddress)
 router.get('/search', searchPosts)
+
+// Partial protected routes
+router.use(authMiddleware(false))
 router.get('/', getPosts)
+router.get('/trending', trendingPosts)
 router.get('/:id', getPost)
 
 // Funding statistics (public)
 router.get('/:post_id/funding-stats', getFundingStats)
 
 // Protected routes (require authentication)
-router.use(authMiddleware)
+router.use(authMiddleware())
 
 // Unified post creation - handles all post types
 router.post('/', createPost)
+
+// Function to get user following posts
+router.get('/following-posts', followersPosts)
 
 // Legacy fundraising management (keeping for backward compatibility)
 router.patch('/fundraising/status', updateFundraisingStatus)

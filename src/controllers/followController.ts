@@ -25,16 +25,33 @@ export const suggestedAccounts = async (
 }
 
 export const getFollowingPosts = async (
-  req: Request,
+  req: Request<{}, {}, {}, {page: number, pageSize: number}>,
   res: Response
 ): Promise<void> => {
   const user = req.user!
-  const user_id = user.id
+  const user_id = user.id;
+
+  // Get pagination data from query parameter
+  const page = Number(req.query.page) || 10;
+  const pageSize = Number(req.query.pageSize) || 1;
+
+  const skip = (page - 1) * pageSize;
+  const take = pageSize;
+  const totalPosts = await FollowModel.getFollowingPostsCount(user_id);
+  const totalPages = Math.ceil(totalPosts / pageSize);
+  
   try {
-    const posts = await FollowModel.getFollowingPosts(user_id)
+    const posts = await FollowModel.getFollowingPosts(user_id, take, skip);
+
     res.status(200).json({
       success: true,
       data: posts,
+      pagination: {
+        page,
+        pageSize,
+        totalPosts,
+        totalPages
+      }
     })
   } catch (error) {
     res.status(500).json({

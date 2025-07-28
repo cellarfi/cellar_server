@@ -179,6 +179,16 @@ export class UsersModel {
             post: true,
           },
         },
+        post: {
+          select: {
+            id: true,
+            content: true,
+            created_at: true
+          },
+          orderBy: {
+            created_at: 'desc'
+          }
+        }
       },
     });
 

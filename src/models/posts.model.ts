@@ -1,13 +1,16 @@
 // NOTE: Run `npx prisma generate` to regenerate the Prisma client
 // with the new FundingMeta model before using the updated methods
 
-import prismaService from '@/service/prismaService'
-import { CreatePostDto } from '@/utils/dto/socialfi.dto'
+import prismaService from "@/service/prismaService";
+import { CreatePostDto } from "@/utils/dto/socialfi.dto";
 
-const prisma = prismaService.prisma
+const prisma = prismaService.prisma;
 
 export class PostModel {
-  static async getPosts() {
+  /**
+   * Get all posts
+   */
+  static async getPosts(skip: number, page_size: number) {
     return prisma.post.findMany({
       include: {
         _count: { select: { comment: true, like: true } },
@@ -17,6 +20,7 @@ export class PostModel {
             tag_name: true,
             display_name: true,
             profile_picture_url: true,
+            wallets: { select: { address: true } },
           },
         },
         funding_meta: {
@@ -46,12 +50,19 @@ export class PostModel {
           },
         },
       },
+      take: page_size,
+      skip: skip,
       orderBy: {
-        created_at: 'desc',
+        created_at: "desc",
       },
-    })
+    });
   }
 
+  /**
+   * Get a post by id
+   * @param id 
+   * @returns 
+   */
   static async getPost(id: string) {
     return prisma.post.findUnique({
       where: { id: id },
@@ -64,6 +75,7 @@ export class PostModel {
             tag_name: true,
             display_name: true,
             profile_picture_url: true,
+            wallets: { select: { address: true } },
           },
         },
         funding_meta: {
@@ -78,11 +90,31 @@ export class PostModel {
             status: true,
           },
         },
+        token_meta: {
+          select: {
+            token_name: true,
+            token_symbol: true,
+            token_address: true,
+            chain_type: true,
+            logo_url: true,
+            launch_date: true,
+            initial_price: true,
+            target_price: true,
+            market_cap: true,
+            description: true,
+          },
+        },
       },
-    })
+    });
   }
 
-  static async getMostLikedPosts(limit: number = 5) {
+  /**
+   * Get trending posts
+   * @param skip 
+   * @param take 
+   * @returns 
+   */
+  static async getTrendingPosts(skip: number, take: number) {
     return prisma.post.findMany({
       include: {
         _count: { select: { like: true } },
@@ -92,6 +124,7 @@ export class PostModel {
             tag_name: true,
             display_name: true,
             profile_picture_url: true,
+            wallets: { select: { address: true } },
           },
         },
         funding_meta: {
@@ -106,16 +139,103 @@ export class PostModel {
             status: true,
           },
         },
-      },
-      orderBy: {
-        like: {
-          _count: 'desc',
+        token_meta: {
+          select: {
+            token_name: true,
+            token_symbol: true,
+            token_address: true,
+            chain_type: true,
+            logo_url: true,
+            launch_date: true,
+            initial_price: true,
+            target_price: true,
+            market_cap: true,
+            description: true,
+          },
         },
       },
-      take: limit,
-    })
+      orderBy: [
+        {
+          like: {
+            _count: "desc",
+          },
+        },
+        {
+          comment: {
+            _count: "desc",
+          },
+        },
+      ],
+      take,
+      skip,
+    });
   }
 
+  /**
+   * Get trending posts count
+   * @returns number
+   */
+  static async getTrendingPostsCount() {
+    const posts = await prisma.post.findMany({
+      include: {
+        _count: { select: { like: true } },
+        user: {
+          select: {
+            id: true,
+            tag_name: true,
+            display_name: true,
+            profile_picture_url: true,
+            wallets: { select: { address: true } },
+          },
+        },
+        funding_meta: {
+          select: {
+            target_amount: true,
+            current_amount: true,
+            wallet_address: true,
+            chain_type: true,
+            token_symbol: true,
+            token_address: true,
+            deadline: true,
+            status: true,
+          },
+        },
+        token_meta: {
+          select: {
+            token_name: true,
+            token_symbol: true,
+            token_address: true,
+            chain_type: true,
+            logo_url: true,
+            launch_date: true,
+            initial_price: true,
+            target_price: true,
+            market_cap: true,
+            description: true,
+          },
+        },
+      },
+      orderBy: [
+        {
+          like: {
+            _count: "desc",
+          },
+        },
+        {
+          comment: {
+            _count: "desc",
+          },
+        },
+      ],
+    });
+    return posts.length;
+  }
+
+  /**
+   * Get most commented posts
+   * @param limit 
+   * @returns 
+   */
   static async getMostCommentedPosts(limit: number = 5) {
     return prisma.post.findMany({
       include: {
@@ -143,43 +263,81 @@ export class PostModel {
       },
       orderBy: {
         comment: {
-          _count: 'desc',
+          _count: "desc",
         },
       },
       take: limit,
-    })
+    });
   }
 
-  static async searchPost(query: string) {
+  /**
+   * Search for post based on query and type
+   * @param query 
+   * @param type 
+   * @returns 
+   */
+  static async searchPost(
+    query: string,
+    type?: "REGULAR" | "TOKEN_CALL" | "DONATION"
+  ) {
     return prisma.post.findMany({
       where: {
         content: {
           contains: query,
-          mode: 'insensitive',
+          mode: "insensitive",
         },
+        ...(type && { post_type: type }),
       },
       select: {
-        content: true,
+        _count: { select: { comment: true, like: true } },
         id: true,
-        created_at: true,
         post_type: true,
+        created_at: true,
+        content: true,
         user: {
           select: {
+            id: true,
+            tag_name: true,
             display_name: true,
             profile_picture_url: true,
+            wallets: { select: { address: true } },
           },
         },
         funding_meta: {
           select: {
             target_amount: true,
             current_amount: true,
+            wallet_address: true,
+            chain_type: true,
+            token_symbol: true,
+            token_address: true,
+            deadline: true,
             status: true,
           },
         },
+        token_meta: {
+          select: {
+            token_name: true,
+            token_symbol: true,
+            token_address: true,
+            chain_type: true,
+            logo_url: true,
+            launch_date: true,
+            initial_price: true,
+            target_price: true,
+            market_cap: true,
+            description: true,
+          },
+        },
       },
-    })
+    });
   }
 
+  /**
+   * Get user's posts
+   * @param user_id 
+   * @returns 
+   */
   static async getUserPosts(user_id: string) {
     return prisma.post.findMany({
       where: {
@@ -205,17 +363,22 @@ export class PostModel {
         },
       },
       orderBy: {
-        created_at: 'desc',
+        created_at: "desc",
       },
-    })
+    });
   }
 
+  /**
+   * Creates a new post
+   * @param createPost 
+   * @returns 
+   */
   static async createPost(createPost: CreatePostDto) {
     return prisma.post.create({
       data: {
         content: createPost.content,
         user_id: createPost.user_id,
-        post_type: 'REGULAR', // Regular posts are always REGULAR type
+        post_type: "REGULAR", // Regular posts are always REGULAR type
       },
       include: {
         user: {
@@ -233,7 +396,7 @@ export class PostModel {
           },
         },
       },
-    })
+    });
   }
 
   /**
@@ -243,7 +406,7 @@ export class PostModel {
   static async createFundraisingPost(
     content: string,
     user_id: string,
-    post_type: 'TOKEN_CALL' | 'DONATION'
+    post_type: "TOKEN_CALL" | "DONATION"
   ) {
     return prisma.post.create({
       data: {
@@ -267,19 +430,19 @@ export class PostModel {
           },
         },
       },
-    })
+    });
   }
 
   /**
    * Get posts by type including funding metadata for fundraising posts
    */
   static async getPostsByType(
-    post_type?: 'REGULAR' | 'TOKEN_CALL' | 'DONATION'
+    post_type?: "REGULAR" | "TOKEN_CALL" | "DONATION"
   ) {
-    const whereClause: any = {}
+    const whereClause: any = {};
 
     if (post_type) {
-      whereClause.post_type = post_type
+      whereClause.post_type = post_type;
     }
 
     return prisma.post.findMany({
@@ -291,6 +454,7 @@ export class PostModel {
             tag_name: true,
             display_name: true,
             profile_picture_url: true,
+            wallets: { select: { address: true } },
           },
         },
         _count: {
@@ -301,7 +465,7 @@ export class PostModel {
           },
         },
         funding_meta:
-          post_type === 'REGULAR'
+          post_type === "REGULAR"
             ? false
             : {
                 select: {
@@ -317,11 +481,18 @@ export class PostModel {
               },
       },
       orderBy: {
-        created_at: 'desc',
+        created_at: "desc",
       },
-    })
+    });
   }
 
+  /**
+   * Update a existing post's content
+   * @param post_id 
+   * @param user_id 
+   * @param content 
+   * @returns 
+   */
   static async updatePost(post_id: string, user_id: string, content: string) {
     return prisma.post.update({
       where: {
@@ -354,18 +525,28 @@ export class PostModel {
           },
         },
       },
-    })
+    });
   }
 
+  /**
+   * Delete's a post
+   * @param post_id 
+   * @param user_id 
+   * @returns 
+   */
   static async deletePost(post_id: string, user_id: string) {
     return prisma.post.delete({
       where: {
         id: post_id,
         user_id: user_id, // Ensure only post author can delete
       },
-    })
+    });
   }
 
+  /**
+   * Get posts total count
+   * @returns number
+   */
   static async getPostsWithCounts() {
     return prisma.post.findMany({
       include: {
@@ -381,6 +562,7 @@ export class PostModel {
             tag_name: true,
             display_name: true,
             profile_picture_url: true,
+            wallets: { select: { address: true } },
           },
         },
         funding_meta: {
@@ -392,8 +574,137 @@ export class PostModel {
         },
       },
       orderBy: {
-        created_at: 'desc',
+        created_at: "desc",
       },
-    })
+    });
+  }
+
+  static async getFollowingPosts(user_id: string) {
+    // Get the list of users the current user is following
+    const following = await prisma.follower.findMany({
+      where: {
+        follower_id: user_id,
+      },
+      select: {
+        user_id: true,
+      },
+    });
+
+    // Extract the user IDs of the followed users
+    const following_ids = following.map((f) => f.user_id);
+
+    // Get posts from followed users, ordered by most recent
+    const posts = await prisma.post.findMany({
+      where: {
+        user_id: {
+          // Fixed: use userId instead of ownerId
+          in: following_ids,
+        },
+      },
+      orderBy: {
+        created_at: "desc",
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            display_name: true,
+            tag_name: true,
+            profile_picture_url: true,
+            wallets: { select: { address: true } },
+          },
+        },
+        _count: {
+          select: {
+            like: true,
+            comment: true,
+          },
+        },
+      },
+    });
+
+    return posts;
+  }
+
+  /**
+   * Get's a post with comment and comment likes count
+   * @param post_id
+   * @param user_id
+   * @param take 
+   * @param skip 
+   * @returns 
+   */
+  static async getPostWithCommentLikes(
+    post_id: string,
+    user_id: string,
+    take: number,
+    skip: number
+  ) {
+    return prisma.post.findUnique({
+      where: { id: post_id },
+      include: {
+        comment: {
+          include: {
+            _count: { select: { CommentLike: true } },
+            CommentLike: {
+              where: { user_id },
+              select: { id: true },
+              orderBy: {
+                created_at: "desc",
+              },
+            },
+            user: {
+              select: {
+                id: true,
+                display_name: true,
+                tag_name: true,
+                profile_picture_url: true,
+              },
+            },
+          },
+          take,
+          skip,
+          orderBy: {
+            created_at: "desc"
+          }
+        },
+        _count: { select: { comment: true, like: true } },
+        user: {
+          select: {
+            id: true,
+            tag_name: true,
+            display_name: true,
+            profile_picture_url: true,
+            wallets: { select: { address: true } },
+          },
+        },
+        funding_meta: {
+          select: {
+            target_amount: true,
+            current_amount: true,
+            wallet_address: true,
+            chain_type: true,
+            token_symbol: true,
+            token_address: true,
+            deadline: true,
+            status: true,
+          },
+        },
+        token_meta: {
+          select: {
+            token_name: true,
+            token_symbol: true,
+            token_address: true,
+            chain_type: true,
+            logo_url: true,
+            launch_date: true,
+            initial_price: true,
+            target_price: true,
+            market_cap: true,
+            description: true,
+          },
+        },
+      },
+    });
   }
 }
