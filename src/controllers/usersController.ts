@@ -329,29 +329,17 @@ export const updateProfile = async (
   }
 };
 
-export const deleteUser = async (
+export const deleteAccount = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const walletAddress = req.user!.wallet!.address;
-    const { success, data, error } = await updateUserSchema.safeParseAsync({
-      ...req.body,
-      user_id: walletAddress,
-    });
-    if (!success) {
-      res.status(400).json({
-        success: false,
-        error: error.message,
-      });
-      return;
-    }
-
-    await UsersModel.deleteUser(walletAddress);
+    const user_id = req.user!.id;
+    await UsersModel.deleteUser(user_id);
 
     res.status(204);
   } catch (err: any) {
-    if (err.code === "P2025") {
+    if (err.code === 'P2025') {
       res.status(404).json({
         success: false,
         error: 'User not found',

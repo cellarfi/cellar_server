@@ -1,13 +1,13 @@
 import {
   checkIfTagNameExists,
   createUser,
-  deleteUser,
+  deleteAccount,
   getProfile,
   getUserByTagName,
   getUserProfile,
   searchUsers,
   updateProfile,
-} from '@/controllers/usersController'
+} from '@/controllers/usersController';
 import { authMiddleware } from '@/middleware/auth.middleware'
 import { Router } from 'express'
 
@@ -20,6 +20,6 @@ router.get('/search', authMiddleware(), searchUsers) // Search users
 router.get('/profile/:tag_name', authMiddleware(), getUserProfile) // Get user profile
 router.post('/', authMiddleware(), createUser)
 router.patch('/me', authMiddleware(), updateProfile)
-router.delete('/me', authMiddleware(), deleteUser)
+router.delete('/me', authMiddleware(), deleteAccount);
 
 export default router
