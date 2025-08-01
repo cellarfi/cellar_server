@@ -140,7 +140,7 @@ model Post {
   updated_at DateTime @updatedAt @db.Timestamptz()
 
   // Relations
-  user         User?        @relation(fields: [user_id], references: [id])
+  user         User?        @relation(fields: [user_id], references: [id], onDelete: Cascade)
   like         Like[]
   comment      Comment[]
   donations    Donation[] // Track individual donations
@@ -216,7 +216,7 @@ model Donation {
 
   // Relations
   post  Post  @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  donor User? @relation(fields: [donor_user_id], references: [id])
+  donor User? @relation(fields: [donor_user_id], references: [id], onDelete: Cascade)
 
   @@index([post_id])
   @@index([donor_user_id])
