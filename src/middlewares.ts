@@ -6,6 +6,7 @@ import morgan from 'morgan'
 
 export const injectMiddleware = (app: express.Express) => {
   app.use(express.json({ limit: '10mb' }))
+  app.use('/', express.static(__dirname + '/public'))
   app.use(compression())
   app.use(helmet())
   app.use(
