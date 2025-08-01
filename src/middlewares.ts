@@ -3,9 +3,11 @@ import cors from 'cors'
 import express from 'express'
 import helmet from 'helmet'
 import morgan from 'morgan'
+import { join } from 'path'
 
 export const injectMiddleware = (app: express.Express) => {
   app.use(express.json({ limit: '10mb' }))
+  app.use('/', express.static(join(__dirname + '/../public')))
   app.use(compression())
   app.use(helmet())
   app.use(
