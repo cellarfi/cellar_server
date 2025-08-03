@@ -1,26 +1,26 @@
 import { FundingMetaModel } from "@/models/fundingMeta.model";
 import { PostModel } from "@/models/posts.model";
 import { TokenMetaModel } from "@/models/tokenMeta.model";
-import prismaService from "@/service/prismaService";
-import { PointsService } from '@/service/pointsService'
+import { PointsService } from '@/service/pointsService';
+import prismaService from '@/service/prismaService';
 import {
   createUnifiedPost,
   CreateUnifiedPostDto,
   UpdateFundraisingStatusDto,
   UpdateTokenCallDto,
   updateTokenCall as updateTokenCallSchema,
-} from "@/utils/dto/socialfi.dto";
-import { Request, Response } from "express";
+} from '@/utils/dto/socialfi.dto';
+import { Request, Response } from 'express';
 
 const prisma = prismaService.prisma;
 
 /**
  * Controller function for returning posts.
- * 
+ *
  * Query Parameters:
  * - page: number (optional, default: 1)
  * - pageSize: number (optional, default: 10)
- * 
+ *
  * @param req Express request object
  * @param res Express response object
  * @returns void
@@ -40,7 +40,7 @@ export const getPosts = async (
   if (page < 1 || page_size < 1) {
     res
       .status(400)
-      .json({ error: "Page and pageSize must be positive integers" });
+      .json({ error: 'Page and pageSize must be positive integers' });
   }
 
   const skip = (page - 1) * page_size;
@@ -94,18 +94,18 @@ export const getPosts = async (
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: "An error occurred fetching posts.",
+      error: 'An error occurred fetching posts.',
     });
   }
 };
 
 /**
  * Controller function for returning trending posts.
- * 
+ *
  * Query Parameters:
  * - page: number (default: 1)
  * - pageSize: number (default: 10)
- * 
+ *
  * @param req Express request object
  * @param res Express response object
  * @returns void
@@ -125,7 +125,7 @@ export const trendingPosts = async (
   if (page < 1 || page_size < 1) {
     res
       .status(400)
-      .json({ error: "Page and pageSize must be positive integers" });
+      .json({ error: 'Page and pageSize must be positive integers' });
     return;
   }
 
@@ -133,7 +133,7 @@ export const trendingPosts = async (
   const take = page_size;
   const totalPosts = await PostModel.getTrendingPostsCount();
 
-  console.log("Total Posts", totalPosts);
+  console.log('Total Posts', totalPosts);
 
   // Calculate total pages based on total posts and page size
   if (totalPosts === 0) {
@@ -153,7 +153,7 @@ export const trendingPosts = async (
   if (page > Math.ceil(totalPosts / page_size)) {
     res.status(400).json({
       success: false,
-      error: "Page number exceeds total pages",
+      error: 'Page number exceeds total pages',
     });
     return;
   }
@@ -193,15 +193,15 @@ export const trendingPosts = async (
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: "An error occurred fetching posts.",
+      error: 'An error occurred fetching posts.',
     });
   }
 };
 
 /**
  * Controller function handling get user's following posts
- * @param req 
- * @param res 
+ * @param req
+ * @param res
  * @returns void
  */
 export const followersPosts = async (
@@ -233,9 +233,9 @@ export const followersPosts = async (
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: "An error occurred fetching following posts.",
+      error: 'An error occurred fetching following posts.',
     });
-  }     
+  }
 };
 
 /**
@@ -262,7 +262,7 @@ export const getPost = async (
   if (page < 1 || page_size < 1) {
     res
       .status(400)
-      .json({ error: "Comment Page and pageSize must be positive integers" });
+      .json({ error: 'Comment Page and pageSize must be positive integers' });
     return;
   }
 
@@ -289,7 +289,7 @@ export const getPost = async (
     if (!post) {
       res.status(404).json({
         success: false,
-        error: "Post not found.",
+        error: 'Post not found.',
       });
       return;
     }
@@ -335,7 +335,7 @@ export const getPost = async (
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: "An error occurred fetching the post.",
+      error: 'An error occurred fetching the post.',
     });
   }
 };
@@ -354,7 +354,7 @@ export const createPost = async (
     if (!user) {
       res.status(404).json({
         success: false,
-        error: "User not found",
+        error: 'User not found',
       });
       return;
     }
@@ -376,16 +376,18 @@ export const createPost = async (
     // Create the base post using the appropriate method based on post type
     let post: any;
 
-    if (data.post_type === "REGULAR") {
+    if (data.post_type === 'REGULAR') {
       post = await PostModel.createPost({
         content: data.content,
+        media: data.media,
         user_id: user_id,
       });
     } else {
       post = await PostModel.createFundraisingPost(
         data.content,
         user_id,
-        data.post_type
+        data.post_type,
+        data.media
       );
     }
 
@@ -395,11 +397,20 @@ export const createPost = async (
     try {
       // Award different points based on post type
       if (data.post_type === 'REGULAR') {
-        await PointsService.awardPoints(user_id, 'POST_CREATION', { post_id: post.id, post_type: data.post_type });
+        await PointsService.awardPoints(user_id, 'POST_CREATION', {
+          post_id: post.id,
+          post_type: data.post_type,
+        });
       } else if (data.post_type === 'DONATION') {
-        await PointsService.awardPoints(user_id, 'DONATION', { post_id: post.id, post_type: data.post_type });
+        await PointsService.awardPoints(user_id, 'DONATION', {
+          post_id: post.id,
+          post_type: data.post_type,
+        });
       } else if (data.post_type === 'TOKEN_CALL') {
-        await PointsService.awardPoints(user_id, 'TOKEN_LAUNCH', { post_id: post.id, post_type: data.post_type });
+        await PointsService.awardPoints(user_id, 'TOKEN_LAUNCH', {
+          post_id: post.id,
+          post_type: data.post_type,
+        });
       }
     } catch (pointsError) {
       // Log but don't prevent post creation if points can't be awarded
@@ -408,11 +419,11 @@ export const createPost = async (
 
     // Handle specific post types with their metadata
     switch (data.post_type) {
-      case "REGULAR":
+      case 'REGULAR':
         // No additional metadata needed
         break;
 
-      case "DONATION":
+      case 'DONATION':
         // Create funding metadata
         const fundingMeta = await FundingMetaModel.createFundingMeta({
           post_id: post.id,
@@ -427,7 +438,7 @@ export const createPost = async (
         result.funding_meta = fundingMeta;
         break;
 
-      case "TOKEN_CALL":
+      case 'TOKEN_CALL':
         // Create token metadata
         const tokenMeta = await TokenMetaModel.createTokenMeta({
           post_id: post.id,
@@ -454,10 +465,10 @@ export const createPost = async (
       data: result,
     });
   } catch (error) {
-    console.error("Error creating post:", error);
+    console.error('Error creating post:', error);
     res.status(500).json({
       success: false,
-      error: "An error occurred creating the post.",
+      error: 'An error occurred creating the post.',
     });
   }
 };
