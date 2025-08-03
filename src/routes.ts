@@ -16,6 +16,7 @@ import raydiumSwapRouter from './routes/swap/raydiumSwapRoutes'
 import tokenRoutes from './routes/token.route'
 import usersRoutes from './routes/users.route'
 import walletRoutes from './routes/wallet.route'
+import uploadRoutes from './routes/upload.route'
 
 export const injectRoutes = (app: express.Express) => {
   app.use('/api/wallet', walletRoutes)
@@ -35,4 +36,5 @@ export const injectRoutes = (app: express.Express) => {
   app.use('/api/posts/comments', commentRoutes)
   app.use('/api/follows', followRoutes)
   app.use('/api/points', pointsRoutes)
+  app.use('/api/upload', uploadRoutes)
 }
