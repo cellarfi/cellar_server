@@ -10,7 +10,7 @@ const prisma = prismaService.prisma
  * AddressBookService - Service for managing user's address book entries
  *
  * This service provides CRUD operations for address book functionality:
- * - Getting all entries for a user
+ * - Getting all entries for a user\
  * - Getting a specific entry by ID
  * - Creating new entries
  * - Updating existing entries
