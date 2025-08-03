@@ -20,3 +20,14 @@ export const isValidSolanaAddress = (address: string): boolean => {
     return false;
   }
 };
+
+export const STABLECOIN_MINTS = [
+  // USDC
+  "EPjFWdd5AufqSSqeM2q8j6Q4p9DW4nAbB6w6kTptF7gS",
+  // USDT
+  "Es9vMFrzaCERk6Ls4L6U4cKkFGr2PzY9nwyDS4V8QG9Z",
+];
+
+export const isStablecoin = (mint: string): boolean => {
+  return STABLECOIN_MINTS.includes(mint);
+}

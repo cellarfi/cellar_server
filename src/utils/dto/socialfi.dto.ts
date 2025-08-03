@@ -3,7 +3,8 @@ import { z } from 'zod'
 export const createPost = z.object({
   content: z.string(),
   user_id: z.string(),
-})
+  media: z.string().array().optional(),
+});
 
 // Enhanced post creation for fundraising posts
 export const createFundraisingPost = z.object({
@@ -52,25 +53,26 @@ export const createCommentSchema = z.object({
   post_id: z.string(),
   text: z.string(),
   user_id: z.string(),
-  parent_id: z.string().optional()
-})
+  parent_id: z.string().optional(),
+  media: z.string().array().optional(),
+});
 
 export const deleteLike = z.object({
   id: z.string(),
   post_id: z.string(),
   user_id: z.string(),
-})
+});
 
 export const deleteComment = z.object({
   id: z.string(),
   post_id: z.string(),
   user_id: z.string(),
-})
+});
 
 export const tipUser = z.object({
   post_id: z.string(),
   amount: z.number(),
-})
+});
 
 // Donation schema (unchanged)
 export const createDonation = z.object({
@@ -81,13 +83,13 @@ export const createDonation = z.object({
   wallet_address: z.string(),
   message: z.string().optional(),
   donor_user_id: z.string().optional(), // Optional if donor is registered user
-})
+});
 
 // Update fundraising status (now updates funding_meta)
 export const updateFundraisingStatus = z.object({
   post_id: z.string(),
   status: z.enum(['ACTIVE', 'COMPLETED', 'EXPIRED', 'CANCELLED']),
-})
+});
 
 // Token Call DTOs - Simplified to match actual schema
 export const createTokenCall = z.object({
@@ -102,7 +104,7 @@ export const createTokenCall = z.object({
   target_price: z.number().positive().optional(),
   market_cap: z.number().positive().optional(),
   description: z.string().optional(),
-})
+});
 
 export const updateTokenCall = z.object({
   post_id: z.string(),
@@ -116,7 +118,7 @@ export const updateTokenCall = z.object({
   target_price: z.number().positive().optional(),
   market_cap: z.number().positive().optional(),
   description: z.string().optional(),
-})
+});
 
 // Unified post creation schema that validates all post types
 export const createUnifiedPost = z.discriminatedUnion('post_type', [
@@ -124,6 +126,7 @@ export const createUnifiedPost = z.discriminatedUnion('post_type', [
   z.object({
     content: z.string().min(1, 'Content cannot be empty'),
     post_type: z.literal('REGULAR'),
+    media: z.string().array().optional(),
   }),
 
   // Donation post
@@ -136,6 +139,7 @@ export const createUnifiedPost = z.discriminatedUnion('post_type', [
     token_symbol: z.string().optional(),
     token_address: z.string().optional(),
     deadline: z.string().datetime().optional(),
+    media: z.string().array().optional(),
   }),
 
   // Token call post
@@ -152,8 +156,9 @@ export const createUnifiedPost = z.discriminatedUnion('post_type', [
     target_price: z.number().positive().optional(),
     market_cap: z.number().positive().optional(),
     description: z.string().optional(),
+    media: z.string().array().optional(),
   }),
-])
+]);
 
 export type CreatePostDto = z.infer<typeof createPost>
 export type CreateFundraisingPostDto = z.infer<typeof createFundraisingPost>

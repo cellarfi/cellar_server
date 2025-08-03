@@ -132,6 +132,7 @@ model Post {
   id      String  @id @default(cuid())
   content String
   user_id String?
+  media String[]
 
   // Keep post_type for easy filtering
   post_type PostType @default(REGULAR)
@@ -258,6 +259,7 @@ model Comment {
   user_id    String
   post_id    String
   content    String
+  media String[] @default([])
   created_at DateTime @default(now()) @db.Timestamptz
   updated_at DateTime @updatedAt @db.Timestamptz
   parentId   String?
@@ -350,6 +352,24 @@ model Point {
   @@index([source])
   @@index([created_at])
   @@map("points")
+}
+
+model Transaction {
+  id         String   @id @default(cuid())
+  user_id    String?
+  amount     Decimal  @db.Decimal(18, 2)
+  token_address String
+  token_name String
+  type       TransactionType @default(TRANSFER)
+  tx_hash String
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+}
+
+enum TransactionType {
+  TRANSFER
+  SWAP
+  DONATION
 }
 
 model UserPoint {
