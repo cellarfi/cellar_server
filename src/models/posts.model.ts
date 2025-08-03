@@ -53,15 +53,15 @@ export class PostModel {
       take: page_size,
       skip: skip,
       orderBy: {
-        created_at: "desc",
+        created_at: 'desc',
       },
     });
   }
 
   /**
    * Get a post by id
-   * @param id 
-   * @returns 
+   * @param id
+   * @returns
    */
   static async getPost(id: string) {
     return prisma.post.findUnique({
@@ -110,9 +110,9 @@ export class PostModel {
 
   /**
    * Get trending posts
-   * @param skip 
-   * @param take 
-   * @returns 
+   * @param skip
+   * @param take
+   * @returns
    */
   static async getTrendingPosts(skip: number, take: number) {
     return prisma.post.findMany({
@@ -157,12 +157,12 @@ export class PostModel {
       orderBy: [
         {
           like: {
-            _count: "desc",
+            _count: 'desc',
           },
         },
         {
           comment: {
-            _count: "desc",
+            _count: 'desc',
           },
         },
       ],
@@ -218,12 +218,12 @@ export class PostModel {
       orderBy: [
         {
           like: {
-            _count: "desc",
+            _count: 'desc',
           },
         },
         {
           comment: {
-            _count: "desc",
+            _count: 'desc',
           },
         },
       ],
@@ -233,8 +233,8 @@ export class PostModel {
 
   /**
    * Get most commented posts
-   * @param limit 
-   * @returns 
+   * @param limit
+   * @returns
    */
   static async getMostCommentedPosts(limit: number = 5) {
     return prisma.post.findMany({
@@ -263,7 +263,7 @@ export class PostModel {
       },
       orderBy: {
         comment: {
-          _count: "desc",
+          _count: 'desc',
         },
       },
       take: limit,
@@ -272,19 +272,19 @@ export class PostModel {
 
   /**
    * Search for post based on query and type
-   * @param query 
-   * @param type 
-   * @returns 
+   * @param query
+   * @param type
+   * @returns
    */
   static async searchPost(
     query: string,
-    type?: "REGULAR" | "TOKEN_CALL" | "DONATION"
+    type?: 'REGULAR' | 'TOKEN_CALL' | 'DONATION'
   ) {
     return prisma.post.findMany({
       where: {
         content: {
           contains: query,
-          mode: "insensitive",
+          mode: 'insensitive',
         },
         ...(type && { post_type: type }),
       },
@@ -335,8 +335,8 @@ export class PostModel {
 
   /**
    * Get user's posts
-   * @param user_id 
-   * @returns 
+   * @param user_id
+   * @returns
    */
   static async getUserPosts(user_id: string) {
     return prisma.post.findMany({
@@ -363,22 +363,22 @@ export class PostModel {
         },
       },
       orderBy: {
-        created_at: "desc",
+        created_at: 'desc',
       },
     });
   }
 
   /**
    * Creates a new post
-   * @param createPost 
-   * @returns 
+   * @param createPost
+   * @returns
    */
   static async createPost(createPost: CreatePostDto) {
     return prisma.post.create({
       data: {
         content: createPost.content,
         user_id: createPost.user_id,
-        post_type: "REGULAR", // Regular posts are always REGULAR type
+        post_type: 'REGULAR', // Regular posts are always REGULAR type
       },
       include: {
         user: {
@@ -406,13 +406,15 @@ export class PostModel {
   static async createFundraisingPost(
     content: string,
     user_id: string,
-    post_type: "TOKEN_CALL" | "DONATION"
+    post_type: 'TOKEN_CALL' | 'DONATION',
+    media?: string[]
   ) {
     return prisma.post.create({
       data: {
         content,
         user_id,
         post_type,
+        ...(media && { media }),
       },
       include: {
         user: {
@@ -437,7 +439,7 @@ export class PostModel {
    * Get posts by type including funding metadata for fundraising posts
    */
   static async getPostsByType(
-    post_type?: "REGULAR" | "TOKEN_CALL" | "DONATION"
+    post_type?: 'REGULAR' | 'TOKEN_CALL' | 'DONATION'
   ) {
     const whereClause: any = {};
 
@@ -465,7 +467,7 @@ export class PostModel {
           },
         },
         funding_meta:
-          post_type === "REGULAR"
+          post_type === 'REGULAR'
             ? false
             : {
                 select: {
@@ -481,17 +483,17 @@ export class PostModel {
               },
       },
       orderBy: {
-        created_at: "desc",
+        created_at: 'desc',
       },
     });
   }
 
   /**
    * Update a existing post's content
-   * @param post_id 
-   * @param user_id 
-   * @param content 
-   * @returns 
+   * @param post_id
+   * @param user_id
+   * @param content
+   * @returns
    */
   static async updatePost(post_id: string, user_id: string, content: string) {
     return prisma.post.update({
@@ -530,9 +532,9 @@ export class PostModel {
 
   /**
    * Delete's a post
-   * @param post_id 
-   * @param user_id 
-   * @returns 
+   * @param post_id
+   * @param user_id
+   * @returns
    */
   static async deletePost(post_id: string, user_id: string) {
     return prisma.post.delete({
@@ -574,7 +576,7 @@ export class PostModel {
         },
       },
       orderBy: {
-        created_at: "desc",
+        created_at: 'desc',
       },
     });
   }
@@ -602,7 +604,7 @@ export class PostModel {
         },
       },
       orderBy: {
-        created_at: "desc",
+        created_at: 'desc',
       },
       include: {
         user: {
@@ -630,9 +632,9 @@ export class PostModel {
    * Get's a post with comment and comment likes count
    * @param post_id
    * @param user_id
-   * @param take 
-   * @param skip 
-   * @returns 
+   * @param take
+   * @param skip
+   * @returns
    */
   static async getPostWithCommentLikes(
     post_id: string,
@@ -650,7 +652,7 @@ export class PostModel {
               where: { user_id },
               select: { id: true },
               orderBy: {
-                created_at: "desc",
+                created_at: 'desc',
               },
             },
             user: {
@@ -665,8 +667,8 @@ export class PostModel {
           take,
           skip,
           orderBy: {
-            created_at: "desc"
-          }
+            created_at: 'desc',
+          },
         },
         _count: { select: { comment: true, like: true } },
         user: {
