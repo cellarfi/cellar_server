@@ -8,6 +8,7 @@ import { birdEyeHeader } from '@/utils/birdeye.util'
 import { NATIVE_SOL_MINT, WRAPPED_SOL_MINT } from '@/utils/solana.util'
 import axios, { AxiosInstance } from 'axios'
 import { apiResponse } from '../../api.helpers'
+import { BirdEyeTokenPrice } from '@/types/birdeye.interface'
 
 const api: AxiosInstance = axios.create({
   baseURL: 'https://public-api.birdeye.so/defi',
@@ -158,6 +159,37 @@ export const birdEyeDefiRequests = {
         err?.response?.data?.message || err?.message || 'Error occurred.',
         undefined
       )
+    }
+  },
+
+  /**
+   * @description Retrieve Token Price
+   * @param token_address 
+   */
+  /**
+   * @description Retrieve Token Price
+   * @param token_address 
+   */
+  tokenPrice: async (token_address: string) => {
+    try {
+      const res = await api.get(`/price`, {
+        params: {
+          address: token_address,
+        },
+      });
+
+      return apiResponse<BirdEyeTokenPrice>(
+        true,
+        'Fetched token price data',
+        res.data.data
+      );
+    } catch (err: any) {
+      console.log('Error fetching token price:', err?.response?.data);
+      return apiResponse<BirdEyeTokenPrice>(
+        false,
+        err?.response?.data?.message || err?.message || 'Error occurred.',
+        undefined
+      );
     }
   },
 }

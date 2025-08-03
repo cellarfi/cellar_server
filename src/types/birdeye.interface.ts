@@ -455,3 +455,17 @@ export interface BirdEyeTrendingTokens {
   updateTime: string
   tokens: BirdEyeTrendingTokenItem[]
 }
+
+interface BirdEyeTokenPriceData {
+  isScaledUiToken: boolean
+  value: number
+  updateUnixTime: number
+  updateHumanTime: string
+  priceChange24h: number
+  priceInNative: number
+}
+
+export interface BirdEyeTokenPrice {
+  data: BirdEyeTokenPriceData
+  success: boolean
+}

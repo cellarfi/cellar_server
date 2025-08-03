@@ -352,6 +352,24 @@ model Point {
   @@map("points")
 }
 
+model Transaction {
+  id         String   @id @default(cuid())
+  user_id    String?
+  amount     Decimal  @db.Decimal(18, 2)
+  token_address String
+  token_name String
+  type       TransactionType @default(TRANSFER)
+  tx_hash String
+  created_at DateTime @default(now()) @db.Timestamptz
+  updated_at DateTime @updatedAt @db.Timestamptz
+}
+
+enum TransactionType {
+  TRANSFER
+  SWAP
+  DONATION
+}
+
 model UserPoint {
   id         String   @id @default(cuid())
   user_id    String   @unique
