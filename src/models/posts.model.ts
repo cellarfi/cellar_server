@@ -378,6 +378,7 @@ export class PostModel {
       data: {
         content: createPost.content,
         user_id: createPost.user_id,
+        media: createPost.media,
         post_type: 'REGULAR', // Regular posts are always REGULAR type
       },
       include: {
@@ -413,8 +414,8 @@ export class PostModel {
       data: {
         content,
         user_id,
+        media,
         post_type,
-        ...(media && { media }),
       },
       include: {
         user: {
