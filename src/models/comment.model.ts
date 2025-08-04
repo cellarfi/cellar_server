@@ -16,6 +16,7 @@ export class CommentModel {
         content: comment.text, // Map text to content field
         post_id: comment.post_id,
         parentId: comment.parent_id,
+        media: comment.media,
       },
       include: {
         user: {
