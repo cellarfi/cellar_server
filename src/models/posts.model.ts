@@ -1,10 +1,10 @@
 // NOTE: Run `npx prisma generate` to regenerate the Prisma client
 // with the new FundingMeta model before using the updated methods
 
-import prismaService from "@/service/prismaService";
-import { CreatePostDto } from "@/utils/dto/socialfi.dto";
+import prismaService from '@/service/prismaService'
+import { CreatePostDto } from '@/utils/dto/socialfi.dto'
 
-const prisma = prismaService.prisma;
+const prisma = prismaService.prisma
 
 export class PostModel {
   /**
@@ -43,7 +43,7 @@ export class PostModel {
             chain_type: true,
             logo_url: true,
             launch_date: true,
-            initial_price: true,
+            price: true,
             target_price: true,
             market_cap: true,
             description: true,
@@ -55,7 +55,7 @@ export class PostModel {
       orderBy: {
         created_at: 'desc',
       },
-    });
+    })
   }
 
   /**
@@ -98,14 +98,14 @@ export class PostModel {
             chain_type: true,
             logo_url: true,
             launch_date: true,
-            initial_price: true,
+            price: true,
             target_price: true,
             market_cap: true,
             description: true,
           },
         },
       },
-    });
+    })
   }
 
   /**
@@ -147,7 +147,7 @@ export class PostModel {
             chain_type: true,
             logo_url: true,
             launch_date: true,
-            initial_price: true,
+            price: true,
             target_price: true,
             market_cap: true,
             description: true,
@@ -168,7 +168,7 @@ export class PostModel {
       ],
       take,
       skip,
-    });
+    })
   }
 
   /**
@@ -208,7 +208,7 @@ export class PostModel {
             chain_type: true,
             logo_url: true,
             launch_date: true,
-            initial_price: true,
+            price: true,
             target_price: true,
             market_cap: true,
             description: true,
@@ -227,8 +227,8 @@ export class PostModel {
           },
         },
       ],
-    });
-    return posts.length;
+    })
+    return posts.length
   }
 
   /**
@@ -267,7 +267,7 @@ export class PostModel {
         },
       },
       take: limit,
-    });
+    })
   }
 
   /**
@@ -323,14 +323,14 @@ export class PostModel {
             chain_type: true,
             logo_url: true,
             launch_date: true,
-            initial_price: true,
+            price: true,
             target_price: true,
             market_cap: true,
             description: true,
           },
         },
       },
-    });
+    })
   }
 
   /**
@@ -365,7 +365,7 @@ export class PostModel {
       orderBy: {
         created_at: 'desc',
       },
-    });
+    })
   }
 
   /**
@@ -397,7 +397,7 @@ export class PostModel {
           },
         },
       },
-    });
+    })
   }
 
   /**
@@ -433,7 +433,7 @@ export class PostModel {
           },
         },
       },
-    });
+    })
   }
 
   /**
@@ -442,10 +442,10 @@ export class PostModel {
   static async getPostsByType(
     post_type?: 'REGULAR' | 'TOKEN_CALL' | 'DONATION'
   ) {
-    const whereClause: any = {};
+    const whereClause: any = {}
 
     if (post_type) {
-      whereClause.post_type = post_type;
+      whereClause.post_type = post_type
     }
 
     return prisma.post.findMany({
@@ -486,7 +486,7 @@ export class PostModel {
       orderBy: {
         created_at: 'desc',
       },
-    });
+    })
   }
 
   /**
@@ -528,7 +528,7 @@ export class PostModel {
           },
         },
       },
-    });
+    })
   }
 
   /**
@@ -543,7 +543,7 @@ export class PostModel {
         id: post_id,
         user_id: user_id, // Ensure only post author can delete
       },
-    });
+    })
   }
 
   /**
@@ -579,7 +579,7 @@ export class PostModel {
       orderBy: {
         created_at: 'desc',
       },
-    });
+    })
   }
 
   static async getFollowingPosts(user_id: string) {
@@ -591,10 +591,10 @@ export class PostModel {
       select: {
         user_id: true,
       },
-    });
+    })
 
     // Extract the user IDs of the followed users
-    const following_ids = following.map((f) => f.user_id);
+    const following_ids = following.map((f) => f.user_id)
 
     // Get posts from followed users, ordered by most recent
     const posts = await prisma.post.findMany({
@@ -624,9 +624,9 @@ export class PostModel {
           },
         },
       },
-    });
+    })
 
-    return posts;
+    return posts
   }
 
   /**
@@ -701,13 +701,13 @@ export class PostModel {
             chain_type: true,
             logo_url: true,
             launch_date: true,
-            initial_price: true,
+            price: true,
             target_price: true,
             market_cap: true,
             description: true,
           },
         },
       },
-    });
+    })
   }
 }

@@ -1,6 +1,6 @@
-import prismaService from '@/service/prismaService';
+import prismaService from '@/service/prismaService'
 
-const prisma = prismaService.prisma;
+const prisma = prismaService.prisma
 
 export class FollowModel {
   static async followUser(follower_id: string, user_id: string) {
@@ -9,10 +9,10 @@ export class FollowModel {
       where: {
         id: user_id,
       },
-    });
+    })
 
     if (!user) {
-      throw new Error('User not found');
+      throw new Error('User not found')
     }
 
     // Check if the follow relationship already exists
@@ -21,7 +21,7 @@ export class FollowModel {
         user_id: user_id,
         follower_id: follower_id,
       },
-    });
+    })
 
     if (existingFollow) {
       // If it exists, unfollow by deleting the relationship
@@ -29,8 +29,8 @@ export class FollowModel {
         where: {
           id: existingFollow.id,
         },
-      });
-      return { action: 'unfollowed' };
+      })
+      return { action: 'unfollowed' }
     } else {
       // If it doesn't exist, create the follow relationship
       await prisma.follower.create({
@@ -38,8 +38,8 @@ export class FollowModel {
           user_id: user_id,
           follower_id: follower_id,
         },
-      });
-      return { action: 'followed' };
+      })
+      return { action: 'followed' }
     }
   }
 
@@ -52,10 +52,10 @@ export class FollowModel {
       select: {
         user_id: true,
       },
-    });
+    })
 
     // Extract the user IDs of the followed users
-    const following_ids = following.map((f) => f.user_id);
+    const following_ids = following.map((f) => f.user_id)
 
     // Get posts from followed users, ordered by most recent
     const posts = await prisma.post.findMany({
@@ -97,7 +97,7 @@ export class FollowModel {
             chain_type: true,
             logo_url: true,
             launch_date: true,
-            initial_price: true,
+            price: true,
             target_price: true,
             market_cap: true,
             description: true,
@@ -109,9 +109,9 @@ export class FollowModel {
       orderBy: {
         created_at: 'desc',
       },
-    });
+    })
 
-    return posts;
+    return posts
   }
 
   static async getFollowingPostsCount(user_id: string) {
@@ -168,7 +168,7 @@ export class FollowModel {
             chain_type: true,
             logo_url: true,
             launch_date: true,
-            initial_price: true,
+            price: true,
             target_price: true,
             market_cap: true,
             description: true,
@@ -198,7 +198,7 @@ export class FollowModel {
           },
         },
       },
-    });
+    })
   }
 
   static async getFollowing(user_id: string) {
@@ -216,7 +216,7 @@ export class FollowModel {
           },
         },
       },
-    });
+    })
   }
 
   static async suggestedAccounts(user_id: string) {
@@ -243,17 +243,17 @@ export class FollowModel {
           _count: 'desc',
         },
         post: {
-          _count: 'desc'
+          _count: 'desc',
         },
         comments: {
-          _count: 'desc'
+          _count: 'desc',
         },
         donations: {
-         _count: 'desc'
-        }
+          _count: 'desc',
+        },
       },
       take: 10, // Get top 10 users
-    });
+    })
 
     // Check if current user follows each suggested account
     const suggestedAccounts = await Promise.all(
@@ -263,7 +263,7 @@ export class FollowModel {
             user_id: user.id,
             follower_id: user_id,
           },
-        });
+        })
 
         return {
           id: user.id,
@@ -272,11 +272,11 @@ export class FollowModel {
           _count: user._count,
           profile_picture_url: user.profile_picture_url,
           following: !!existingFollow,
-        };
+        }
       })
-    );
+    )
 
-    return suggestedAccounts;
+    return suggestedAccounts
   }
 
   static async checkIfFollowing(follower_id: string, user_id: string) {
@@ -285,7 +285,7 @@ export class FollowModel {
         user_id: user_id,
         follower_id: follower_id,
       },
-    });
-    return !!existingFollow;
+    })
+    return !!existingFollow
   }
 }
