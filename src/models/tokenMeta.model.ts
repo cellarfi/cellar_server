@@ -45,7 +45,7 @@ export class TokenMetaModel {
         token_address: data.token_address,
         chain_type: data.chain_type,
         launch_date: data.launch_date,
-        initial_price: data.initial_price,
+        price: data.initial_price,
         target_price: data.target_price,
         market_cap: data.market_cap,
         description: data.description,
@@ -337,7 +337,7 @@ export class TokenMetaModel {
       where: { post_id },
       data: {
         launch_date: launch_data?.launch_date || new Date(),
-        initial_price: launch_data?.initial_price,
+        price: launch_data?.initial_price,
       },
       include: {
         post: {
