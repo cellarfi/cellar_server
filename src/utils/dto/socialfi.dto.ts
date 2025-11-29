@@ -6,6 +6,12 @@ export const createPost = z.object({
   media: z.string().array().optional(),
 });
 
+// DTO for updating a post
+export const updatePost = z.object({
+  id: z.string().min(1, 'Post ID is required'),
+  content: z.string().min(1, 'Content cannot be empty'),
+});
+
 // Enhanced post creation for fundraising posts
 export const createFundraisingPost = z.object({
   content: z.string(),
@@ -161,6 +167,7 @@ export const createUnifiedPost = z.discriminatedUnion('post_type', [
 ]);
 
 export type CreatePostDto = z.infer<typeof createPost>
+export type UpdatePostDto = z.infer<typeof updatePost>
 export type CreateFundraisingPostDto = z.infer<typeof createFundraisingPost>
 export type CreateFundingMetaDto = z.infer<typeof createFundingMeta>
 export type UpdateFundingMetaDto = z.infer<typeof updateFundingMeta>

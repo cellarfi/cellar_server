@@ -1,6 +1,6 @@
-import { config } from 'dotenv';
+import { config } from 'dotenv'
 
-config();
+config()
 
 export const Env = {
   PORT: process.env.PORT || 3000,
@@ -16,4 +16,5 @@ export const Env = {
   CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || '',
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',
-};
+  PAJ_API_KEY: process.env.PAJ_API_KEY || '',
+}

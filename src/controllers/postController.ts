@@ -9,6 +9,8 @@ import {
   UpdateFundraisingStatusDto,
   UpdateTokenCallDto,
   updateTokenCall as updateTokenCallSchema,
+  updatePost as updatePostSchema,
+  UpdatePostDto,
 } from '@/utils/dto/socialfi.dto';
 import { Request, Response } from 'express';
 
@@ -900,6 +902,112 @@ export const getTokenCallByAddress = async (
     res.status(500).json({
       success: false,
       error: "An error occurred fetching the token call.",
+    });
+  }
+};
+
+/**
+ * Update a post's content
+ */
+export const updatePost = async (
+  req: Request<{}, {}, UpdatePostDto>,
+  res: Response
+): Promise<void> => {
+  try {
+    const user = req.user!;
+    const user_id = user.id;
+
+    // Validate request data using Zod schema
+    const { success, data, error } = await updatePostSchema.safeParseAsync(
+      req.body
+    );
+
+    if (!success) {
+      res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+      return;
+    }
+
+    // First, verify the user owns the post
+    const post = await PostModel.getPost(data.id);
+    if (!post) {
+      res.status(404).json({
+        success: false,
+        error: "Post not found",
+      });
+      return;
+    }
+
+    if (post.user_id !== user_id) {
+      res.status(403).json({
+        success: false,
+        error: "Unauthorized: You can only update your own posts",
+      });
+      return;
+    }
+
+    const updatedPost = await PostModel.updatePost(
+      data.id,
+      user_id,
+      data.content
+    );
+
+    res.status(200).json({
+      success: true,
+      data: updatedPost,
+    });
+  } catch (error) {
+    console.error("Error updating post:", error);
+    res.status(500).json({
+      success: false,
+      error: "An error occurred updating the post.",
+    });
+  }
+};
+
+/**
+ * Delete a post
+ */
+export const deletePost = async (
+  req: Request<{ id: string }>,
+  res: Response
+): Promise<void> => {
+  try {
+    const user = req.user!;
+    const user_id = user.id;
+    const { id } = req.params;
+
+    // First, verify the user owns the post
+    const post = await PostModel.getPost(id);
+    if (!post) {
+      res.status(404).json({
+        success: false,
+        error: "Post not found",
+      });
+      return;
+    }
+
+    if (post.user_id !== user_id) {
+      res.status(403).json({
+        success: false,
+        error: "Unauthorized: You can only delete your own posts",
+      });
+      return;
+    }
+
+    await PostModel.deletePost(id, user_id);
+
+    res.status(200).json({
+      success: true,
+      message: "Post deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting post:", error);
+    res.status(500).json({
+      success: false,
+      error: "An error occurred deleting the post.",
     });
   }
 };

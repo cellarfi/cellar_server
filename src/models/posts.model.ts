@@ -491,6 +491,7 @@ export class PostModel {
 
   /**
    * Update a existing post's content
+   * Note: Ownership should be verified before calling this method
    * @param post_id
    * @param user_id
    * @param content
@@ -500,7 +501,6 @@ export class PostModel {
     return prisma.post.update({
       where: {
         id: post_id,
-        user_id: user_id, // Ensure only post author can update
       },
       data: {
         content: content,
@@ -533,6 +533,7 @@ export class PostModel {
 
   /**
    * Delete's a post
+   * Note: Ownership should be verified before calling this method
    * @param post_id
    * @param user_id
    * @returns
@@ -541,7 +542,6 @@ export class PostModel {
     return prisma.post.delete({
       where: {
         id: post_id,
-        user_id: user_id, // Ensure only post author can delete
       },
     })
   }

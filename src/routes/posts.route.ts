@@ -1,5 +1,6 @@
 import {
   createPost,
+  deletePost,
   followersPosts,
   getActiveFundraisingPosts,
   getFundingStats,
@@ -15,6 +16,7 @@ import {
   searchTokenCalls,
   trendingPosts,
   updateFundraisingStatus,
+  updatePost,
   updateTokenCall,
 } from '@/controllers/postController'
 import { authMiddleware } from '@/middleware/auth.middleware'
@@ -45,6 +47,10 @@ router.use(authMiddleware())
 
 // Unified post creation - handles all post types
 router.post('/', createPost)
+
+// Update and delete posts
+router.patch('/', updatePost)
+router.delete('/:id', deletePost)
 
 // Function to get user following posts
 router.get('/following-posts', followersPosts)
