@@ -162,16 +162,33 @@ export class FundingMetaModel {
       })
 
       // Check if target is reached and update status if needed
-      if (
-        updatedMeta.target_amount &&
-        updatedMeta.current_amount &&
-        updatedMeta.current_amount >= updatedMeta.target_amount &&
-        updatedMeta.status === 'ACTIVE'
-      ) {
-        await tx.fundingMeta.update({
-          where: { post_id },
-          data: { status: 'COMPLETED' },
-        })
+      // Convert Decimal to number for proper comparison
+      const currentAmount = Number(updatedMeta.current_amount)
+      const targetAmount = Number(updatedMeta.target_amount)
+
+      // Validate and correct status based on actual amounts
+      if (targetAmount > 0 && currentAmount > 0) {
+        if (currentAmount >= targetAmount) {
+          // Target reached - should be COMPLETED
+          if (updatedMeta.status !== 'COMPLETED') {
+            console.log('[incrementAmount] Marking campaign as COMPLETED')
+            await tx.fundingMeta.update({
+              where: { post_id },
+              data: { status: 'COMPLETED' },
+            })
+          }
+        } else {
+          // Target not reached - should be ACTIVE (unless manually set to CANCELLED/EXPIRED)
+          if (updatedMeta.status === 'COMPLETED') {
+            console.log(
+              '[incrementAmount] Correcting status: COMPLETED -> ACTIVE (target not reached)'
+            )
+            await tx.fundingMeta.update({
+              where: { post_id },
+              data: { status: 'ACTIVE' },
+            })
+          }
+        }
       }
 
       return updatedMeta

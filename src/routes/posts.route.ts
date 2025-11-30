@@ -11,6 +11,7 @@ import {
   getTokenCalls,
   getTrendingTokenCalls,
   getUserFundraisingPosts,
+  incrementFundingAmount,
   markTokenAsLaunched,
   searchPosts,
   searchTokenCalls,
@@ -44,6 +45,9 @@ router.get('/:post_id/funding-stats', getFundingStats)
 
 // Protected routes (require authentication)
 router.use(authMiddleware())
+
+// Increment funding amount for donation posts
+router.patch('/:post_id/increment-funding', incrementFundingAmount)
 
 // Unified post creation - handles all post types
 router.post('/', createPost)

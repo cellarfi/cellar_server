@@ -1,20 +1,20 @@
-import { FundingMetaModel } from "@/models/fundingMeta.model";
-import { PostModel } from "@/models/posts.model";
-import { TokenMetaModel } from "@/models/tokenMeta.model";
-import { PointsService } from '@/service/pointsService';
-import prismaService from '@/service/prismaService';
+import { FundingMetaModel } from '@/models/fundingMeta.model'
+import { PostModel } from '@/models/posts.model'
+import { TokenMetaModel } from '@/models/tokenMeta.model'
+import { PointsService } from '@/service/pointsService'
+import prismaService from '@/service/prismaService'
 import {
   createUnifiedPost,
   CreateUnifiedPostDto,
   UpdateFundraisingStatusDto,
+  UpdatePostDto,
+  updatePost as updatePostSchema,
   UpdateTokenCallDto,
   updateTokenCall as updateTokenCallSchema,
-  updatePost as updatePostSchema,
-  UpdatePostDto,
-} from '@/utils/dto/socialfi.dto';
-import { Request, Response } from 'express';
+} from '@/utils/dto/socialfi.dto'
+import { Request, Response } from 'express'
 
-const prisma = prismaService.prisma;
+const prisma = prismaService.prisma
 
 /**
  * Controller function for returning posts.
@@ -31,24 +31,24 @@ export const getPosts = async (
   req: Request<{}, {}, {}, { page: number; pageSize: number }>,
   res: Response
 ): Promise<void> => {
-  const user = req.user!;
-  const user_id = user?.id;
+  const user = req.user!
+  const user_id = user?.id
 
   // Get page and pageSize from query parameters, with defaults
-  const page = Number(req.query.page) || 10;
-  const page_size = Number(req.query.pageSize) || 1;
+  const page = Number(req.query.page) || 10
+  const page_size = Number(req.query.pageSize) || 1
 
   // Validate page and pageSize
   if (page < 1 || page_size < 1) {
     res
       .status(400)
-      .json({ error: 'Page and pageSize must be positive integers' });
+      .json({ error: 'Page and pageSize must be positive integers' })
   }
 
-  const skip = (page - 1) * page_size;
-  const take = page_size;
-  const totalPosts = await prisma.post.count();
-  const totalPages = Math.ceil(totalPosts / page_size);
+  const skip = (page - 1) * page_size
+  const take = page_size
+  const totalPosts = await prisma.post.count()
+  const totalPages = Math.ceil(totalPosts / page_size)
 
   // Calculate total pages based on total posts and page size
   if (totalPosts === 0) {
@@ -61,28 +61,28 @@ export const getPosts = async (
         totalPosts: 0,
         totalPages: 0,
       },
-    });
-    return;
+    })
+    return
   }
 
   // Fetch posts with pagination
   try {
-    const posts = await PostModel.getPosts(skip, take);
+    const posts = await PostModel.getPosts(skip, take)
     const postsWithLikes = await Promise.all(
       posts.map(async (post: any) => {
         const like = await prismaService.prisma.like.findFirst({
           where: { post_id: post.id, user_id: user_id },
-        });
+        })
         return {
           ...post,
           like: {
             status: !!like,
             id: like?.id,
           },
-        };
+        }
       })
-    );
-    const data = user ? postsWithLikes : posts;
+    )
+    const data = user ? postsWithLikes : posts
     res.status(200).json({
       success: true,
       data,
@@ -92,14 +92,14 @@ export const getPosts = async (
         totalPosts,
         totalPages,
       },
-    });
+    })
   } catch (error) {
     res.status(500).json({
       success: false,
       error: 'An error occurred fetching posts.',
-    });
+    })
   }
-};
+}
 
 /**
  * Controller function for returning trending posts.
@@ -116,26 +116,26 @@ export const trendingPosts = async (
   req: Request<{}, {}, {}, { page: number; pageSize: number }>,
   res: Response
 ): Promise<void> => {
-  const user = req.user!;
-  const user_id = user?.id;
+  const user = req.user!
+  const user_id = user?.id
 
   // Get page and pageSize from query parameters, with defaults
-  const page = Number(req.query.page) || 10;
-  const page_size = Number(req.query.pageSize) || 1;
+  const page = Number(req.query.page) || 10
+  const page_size = Number(req.query.pageSize) || 1
 
   // Validate page and pageSize
   if (page < 1 || page_size < 1) {
     res
       .status(400)
-      .json({ error: 'Page and pageSize must be positive integers' });
-    return;
+      .json({ error: 'Page and pageSize must be positive integers' })
+    return
   }
 
-  const skip = (page - 1) * page_size;
-  const take = page_size;
-  const totalPosts = await PostModel.getTrendingPostsCount();
+  const skip = (page - 1) * page_size
+  const take = page_size
+  const totalPosts = await PostModel.getTrendingPostsCount()
 
-  console.log('Total Posts', totalPosts);
+  console.log('Total Posts', totalPosts)
 
   // Calculate total pages based on total posts and page size
   if (totalPosts === 0) {
@@ -148,40 +148,40 @@ export const trendingPosts = async (
         totalPosts: 0,
         totalPages: 0,
       },
-    });
-    return;
+    })
+    return
   }
 
   if (page > Math.ceil(totalPosts / page_size)) {
     res.status(400).json({
       success: false,
       error: 'Page number exceeds total pages',
-    });
-    return;
+    })
+    return
   }
   // Calculate total pages
-  const totalPages = Math.ceil(totalPosts / page_size);
+  const totalPages = Math.ceil(totalPosts / page_size)
 
   // Fetch trending posts with pagination
   try {
-    const posts = await PostModel.getTrendingPosts(skip, take);
+    const posts = await PostModel.getTrendingPosts(skip, take)
     const postsWithLikes = await Promise.all(
       posts.map(async (post: any) => {
         const like = await prismaService.prisma.like.findFirst({
           where: { post_id: post.id, user_id: user_id },
-        });
+        })
         return {
           ...post,
           like: {
             status: !!like,
             id: like?.id,
           },
-        };
+        }
       })
-    );
+    )
 
     // Return paginated data
-    const data = user ? postsWithLikes : posts;
+    const data = user ? postsWithLikes : posts
     res.status(200).json({
       success: true,
       data,
@@ -191,14 +191,14 @@ export const trendingPosts = async (
         totalPages,
         totalPosts,
       },
-    });
+    })
   } catch (error) {
     res.status(500).json({
       success: false,
       error: 'An error occurred fetching posts.',
-    });
+    })
   }
-};
+}
 
 /**
  * Controller function handling get user's following posts
@@ -210,35 +210,35 @@ export const followersPosts = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const user = req.user!;
-  const user_id = user?.id;
+  const user = req.user!
+  const user_id = user?.id
   try {
-    const posts = await PostModel.getFollowingPosts(user_id);
+    const posts = await PostModel.getFollowingPosts(user_id)
     const postsWithLikes = await Promise.all(
       posts.map(async (post: any) => {
         const like = await prismaService.prisma.like.findFirst({
           where: { post_id: post.id, user_id: user_id },
-        });
+        })
         return {
           ...post,
           like: {
             status: !!like,
             id: like?.id,
           },
-        };
+        }
       })
-    );
+    )
     res.status(200).json({
       success: true,
       data: user ? postsWithLikes : posts,
-    });
+    })
   } catch (error) {
     res.status(500).json({
       success: false,
       error: 'An error occurred fetching following posts.',
-    });
+    })
   }
-};
+}
 
 /**
  * Controller function to get a post by its ID, including paginated comments.
@@ -252,31 +252,31 @@ export const getPost = async (
   req: Request<{ id: string }, {}, {}, { page: number; pageSize: number }>,
   res: Response
 ): Promise<void> => {
-  const user = req.user!;
-  const user_id = user?.id;
-  const { id } = req.params;
+  const user = req.user!
+  const user_id = user?.id
+  const { id } = req.params
 
   // Get page and pageSize from query parameters, with defaults
-  const page = Number(req.query.page) || 10;
-  const page_size = Number(req.query.pageSize) || 1;
+  const page = Number(req.query.page) || 10
+  const page_size = Number(req.query.pageSize) || 1
 
   // Validate page and pageSize
   if (page < 1 || page_size < 1) {
     res
       .status(400)
-      .json({ error: 'Comment Page and pageSize must be positive integers' });
-    return;
+      .json({ error: 'Comment Page and pageSize must be positive integers' })
+    return
   }
 
-  const skip = (page - 1) * page_size;
-  const take = page_size;
+  const skip = (page - 1) * page_size
+  const take = page_size
 
   const totalPosts = await prisma.comment.count({
     where: {
       post_id: id,
     },
-  });
-  const totalPages = Math.ceil(totalPosts / page_size);
+  })
+  const totalPages = Math.ceil(totalPosts / page_size)
 
   // Return Paginated Replies
   try {
@@ -286,20 +286,20 @@ export const getPost = async (
       user_id,
       take,
       skip
-    );
+    )
 
     if (!post) {
       res.status(404).json({
         success: false,
         error: 'Post not found.',
-      });
-      return;
+      })
+      return
     }
 
     // Get like for the post (for the current user)
     const like = await prismaService.prisma.like.findFirst({
       where: { post_id: post.id, user_id: user_id },
-    });
+    })
 
     // Process comments to add like count and status
     const commentsWithLikeStatus = post.comment.map((comment) => ({
@@ -310,7 +310,7 @@ export const getPost = async (
         id: comment.CommentLike[0]?.id,
       },
       CommentLike: undefined,
-    }));
+    }))
 
     let postWithLikes = {
       ...post,
@@ -320,9 +320,9 @@ export const getPost = async (
         id: like?.id,
       },
       comment: commentsWithLikeStatus,
-    };
+    }
 
-    const data = user ? postWithLikes : post;
+    const data = user ? postWithLikes : post
 
     res.status(200).json({
       success: true,
@@ -333,14 +333,14 @@ export const getPost = async (
         totalPages,
         totalPosts,
       },
-    });
+    })
   } catch (error) {
     res.status(500).json({
       success: false,
       error: 'An error occurred fetching the post.',
-    });
+    })
   }
-};
+}
 
 /**
  * Unified function to create any type of post with proper validation
@@ -350,50 +350,50 @@ export const createPost = async (
   res: Response
 ): Promise<void> => {
   try {
-    const user = req.user!;
-    const user_id = user.id;
+    const user = req.user!
+    const user_id = user.id
 
     if (!user) {
       res.status(404).json({
         success: false,
         error: 'User not found',
-      });
-      return;
+      })
+      return
     }
 
     // Validate the entire request using the unified schema
     const { success, data, error } = await createUnifiedPost.safeParseAsync(
       req.body
-    );
+    )
 
     if (!success) {
       res.status(400).json({
         success: false,
         error: error.message,
-      });
-      console.log(error);
-      return;
+      })
+      console.log(error)
+      return
     }
 
     // Create the base post using the appropriate method based on post type
-    let post: any;
+    let post: any
 
     if (data.post_type === 'REGULAR') {
       post = await PostModel.createPost({
         content: data.content,
         media: data.media,
         user_id: user_id,
-      });
+      })
     } else {
       post = await PostModel.createFundraisingPost(
         data.content,
         user_id,
         data.post_type,
         data.media
-      );
+      )
     }
 
-    let result: any = { ...post };
+    let result: any = { ...post }
 
     // Award points for post creation based on post type
     try {
@@ -402,28 +402,28 @@ export const createPost = async (
         await PointsService.awardPoints(user_id, 'POST_CREATION', {
           post_id: post.id,
           post_type: data.post_type,
-        });
+        })
       } else if (data.post_type === 'DONATION') {
         await PointsService.awardPoints(user_id, 'DONATION', {
           post_id: post.id,
           post_type: data.post_type,
-        });
+        })
       } else if (data.post_type === 'TOKEN_CALL') {
         await PointsService.awardPoints(user_id, 'TOKEN_LAUNCH', {
           post_id: post.id,
           post_type: data.post_type,
-        });
+        })
       }
     } catch (pointsError) {
       // Log but don't prevent post creation if points can't be awarded
-      console.error('[createPost] Error awarding points:', pointsError);
+      console.error('[createPost] Error awarding points:', pointsError)
     }
 
     // Handle specific post types with their metadata
     switch (data.post_type) {
       case 'REGULAR':
         // No additional metadata needed
-        break;
+        break
 
       case 'DONATION':
         // Create funding metadata
@@ -435,10 +435,10 @@ export const createPost = async (
           token_symbol: data.token_symbol,
           token_address: data.token_address,
           deadline: data.deadline ? new Date(data.deadline) : undefined,
-        });
+        })
 
-        result.funding_meta = fundingMeta;
-        break;
+        result.funding_meta = fundingMeta
+        break
 
       case 'TOKEN_CALL':
         // Create token metadata
@@ -456,48 +456,48 @@ export const createPost = async (
           target_price: data.target_price,
           market_cap: data.market_cap,
           description: data.description,
-        });
+        })
 
-        result.token_meta = tokenMeta;
-        break;
+        result.token_meta = tokenMeta
+        break
     }
 
     res.status(201).json({
       success: true,
       data: result,
-    });
+    })
   } catch (error) {
-    console.error('Error creating post:', error);
+    console.error('Error creating post:', error)
     res.status(500).json({
       success: false,
       error: 'An error occurred creating the post.',
-    });
+    })
   }
-};
+}
 
 /**
  * Get fundraising posts (token calls and donations)
  */
 export const getFundraisingPosts = async (
-  req: Request<{}, {}, {}, { type?: "TOKEN_CALL" | "DONATION" }>,
+  req: Request<{}, {}, {}, { type?: 'TOKEN_CALL' | 'DONATION' }>,
   res: Response
 ): Promise<void> => {
   try {
-    const { type } = req.query;
-    const posts = await FundingMetaModel.getFundraisingPostsByType(type);
+    const { type } = req.query
+    const posts = await FundingMetaModel.getFundraisingPostsByType(type)
 
     res.status(200).json({
       success: true,
       data: posts,
-    });
+    })
   } catch (error) {
-    console.error("Error fetching fundraising posts:", error);
+    console.error('Error fetching fundraising posts:', error)
     res.status(500).json({
       success: false,
-      error: "An error occurred fetching fundraising posts.",
-    });
+      error: 'An error occurred fetching fundraising posts.',
+    })
   }
-};
+}
 
 /**
  * Get active fundraising posts
@@ -507,20 +507,20 @@ export const getActiveFundraisingPosts = async (
   res: Response
 ): Promise<void> => {
   try {
-    const posts = await FundingMetaModel.getActiveFundraisingPosts();
+    const posts = await FundingMetaModel.getActiveFundraisingPosts()
 
     res.status(200).json({
       success: true,
       data: posts,
-    });
+    })
   } catch (error) {
-    console.error("Error fetching active fundraising posts:", error);
+    console.error('Error fetching active fundraising posts:', error)
     res.status(500).json({
       success: false,
-      error: "An error occurred fetching active fundraising posts.",
-    });
+      error: 'An error occurred fetching active fundraising posts.',
+    })
   }
-};
+}
 
 /**
  * Update fundraising post status
@@ -530,36 +530,36 @@ export const updateFundraisingStatus = async (
   res: Response
 ): Promise<void> => {
   try {
-    const user = req.user!;
-    const user_id = user.id;
+    const user = req.user!
+    const user_id = user.id
 
     // First, verify the user owns the post
-    const post = await PostModel.getPost(req.body.post_id);
+    const post = await PostModel.getPost(req.body.post_id)
     if (!post || post.user_id !== user_id) {
       res.status(403).json({
         success: false,
-        error: "Unauthorized: You can only update your own posts",
-      });
-      return;
+        error: 'Unauthorized: You can only update your own posts',
+      })
+      return
     }
 
     const updatedMeta = await FundingMetaModel.updateStatus(
       req.body.post_id,
       req.body.status
-    );
+    )
 
     res.status(200).json({
       success: true,
       data: updatedMeta,
-    });
+    })
   } catch (error) {
-    console.error("Error updating fundraising status:", error);
+    console.error('Error updating fundraising status:', error)
     res.status(500).json({
       success: false,
-      error: "An error occurred updating the fundraising status.",
-    });
+      error: 'An error occurred updating the fundraising status.',
+    })
   }
-};
+}
 
 /**
  * Get user's fundraising posts
@@ -569,25 +569,23 @@ export const getUserFundraisingPosts = async (
   res: Response
 ): Promise<void> => {
   try {
-    const user = req.user!;
-    const target_user_id = req.params.user_id || user.id;
+    const user = req.user!
+    const target_user_id = req.params.user_id || user.id
 
-    const posts = await FundingMetaModel.getUserFundraisingPosts(
-      target_user_id
-    );
+    const posts = await FundingMetaModel.getUserFundraisingPosts(target_user_id)
 
     res.status(200).json({
       success: true,
       data: posts,
-    });
+    })
   } catch (error) {
-    console.error("Error fetching user fundraising posts:", error);
+    console.error('Error fetching user fundraising posts:', error)
     res.status(500).json({
       success: false,
-      error: "An error occurred fetching user fundraising posts.",
-    });
+      error: 'An error occurred fetching user fundraising posts.',
+    })
   }
-};
+}
 
 /**
  * Get funding statistics for a post
@@ -597,38 +595,38 @@ export const getFundingStats = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { post_id } = req.params;
+    const { post_id } = req.params
 
-    const stats = await FundingMetaModel.getFundingStats(post_id);
+    const stats = await FundingMetaModel.getFundingStats(post_id)
 
     if (!stats) {
       res.status(404).json({
         success: false,
-        error: "Funding metadata not found for this post",
-      });
-      return;
+        error: 'Funding metadata not found for this post',
+      })
+      return
     }
 
     res.status(200).json({
       success: true,
       data: stats,
-    });
+    })
   } catch (error) {
-    console.error("Error fetching funding stats:", error);
+    console.error('Error fetching funding stats:', error)
     res.status(500).json({
       success: false,
-      error: "An error occurred fetching funding statistics.",
-    });
+      error: 'An error occurred fetching funding statistics.',
+    })
   }
-};
+}
 
 /**
  * Controller to handle searching for posts.
- * 
+ *
  * Expects:
  *   - req.query.query: string (search term, required)
  *   - req.query.type: string (optional, post type filter: "REGULAR" | "TOKEN_CALL" | "DONATION")
- * 
+ *
  * @param req - Express request object
  * @param res - Express response object
  * @returns void
@@ -638,48 +636,48 @@ export const searchPosts = async (
   res: Response
 ): Promise<void> => {
   try {
-    const user = req.user!;
-    const user_id = user?.id;
-    const query = req.query.query;
-    const type = req.query.type;
+    const user = req.user!
+    const user_id = user?.id
+    const query = req.query.query
+    const type = req.query.type
 
     if (!query) {
       res.status(400).json({
         success: false,
-        error: "Search query is required",
-      });
-      return;
+        error: 'Search query is required',
+      })
+      return
     }
 
-    const postType = type as "REGULAR" | "TOKEN_CALL" | "DONATION" | undefined;
-    const posts = await PostModel.searchPost(query, postType);
+    const postType = type as 'REGULAR' | 'TOKEN_CALL' | 'DONATION' | undefined
+    const posts = await PostModel.searchPost(query, postType)
     const postsWithLikes = await Promise.all(
       posts.map(async (post: any) => {
         const like = await prismaService.prisma.like.findFirst({
           where: { post_id: post.id, user_id: user_id },
-        });
+        })
         return {
           ...post,
           like: {
             status: !!like,
             id: like?.id,
           },
-        };
+        }
       })
-    );
+    )
 
     res.status(200).json({
       success: true,
       data: user ? postsWithLikes : posts,
-    });
+    })
   } catch (error) {
-    console.error(error);
+    console.error(error)
     res.status(500).json({
       success: false,
-      error: "An error occurred searching for posts.",
-    });
+      error: 'An error occurred searching for posts.',
+    })
   }
-};
+}
 
 /**
  * Get all token calls
@@ -689,33 +687,33 @@ export const getTokenCalls = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { chain_type, is_launched } = req.query;
+    const { chain_type, is_launched } = req.query
 
-    let tokenCalls;
+    let tokenCalls
 
     if (chain_type) {
-      tokenCalls = await TokenMetaModel.getTokenCallsByChain(chain_type);
+      tokenCalls = await TokenMetaModel.getTokenCallsByChain(chain_type)
     } else if (is_launched !== undefined) {
       // Convert string to boolean and use launch_date-based logic
       tokenCalls = await TokenMetaModel.getTokenCallsByStatus(
-        is_launched === "true"
-      );
+        is_launched === 'true'
+      )
     } else {
-      tokenCalls = await TokenMetaModel.getTokenCalls();
+      tokenCalls = await TokenMetaModel.getTokenCalls()
     }
 
     res.status(200).json({
       success: true,
       data: tokenCalls,
-    });
+    })
   } catch (error) {
-    console.error("Error fetching token calls:", error);
+    console.error('Error fetching token calls:', error)
     res.status(500).json({
       success: false,
-      error: "An error occurred fetching token calls.",
-    });
+      error: 'An error occurred fetching token calls.',
+    })
   }
-};
+}
 
 /**
  * Get trending token calls
@@ -725,21 +723,21 @@ export const getTrendingTokenCalls = async (
   res: Response
 ): Promise<void> => {
   try {
-    const limit = parseInt(req.query.limit || "10", 10);
-    const tokenCalls = await TokenMetaModel.getTrendingTokenCalls(limit);
+    const limit = parseInt(req.query.limit || '10', 10)
+    const tokenCalls = await TokenMetaModel.getTrendingTokenCalls(limit)
 
     res.status(200).json({
       success: true,
       data: tokenCalls,
-    });
+    })
   } catch (error) {
-    console.error("Error fetching trending token calls:", error);
+    console.error('Error fetching trending token calls:', error)
     res.status(500).json({
       success: false,
-      error: "An error occurred fetching trending token calls.",
-    });
+      error: 'An error occurred fetching trending token calls.',
+    })
   }
-};
+}
 
 /**
  * Update token call metadata
@@ -749,51 +747,51 @@ export const updateTokenCall = async (
   res: Response
 ): Promise<void> => {
   try {
-    const user = req.user!;
-    const user_id = user.id;
+    const user = req.user!
+    const user_id = user.id
 
     // Validate request data using Zod schema
     const { success, data, error } = await updateTokenCallSchema.safeParseAsync(
       req.body
-    );
+    )
 
     if (!success) {
       res.status(400).json({
         success: false,
         error: error.message,
-      });
-      return;
+      })
+      return
     }
 
     // First, verify the user owns the post
-    const post = await PostModel.getPost(data.post_id);
+    const post = await PostModel.getPost(data.post_id)
     if (!post || post.user_id !== user_id) {
       res.status(403).json({
         success: false,
-        error: "Unauthorized: You can only update your own token calls",
-      });
-      return;
+        error: 'Unauthorized: You can only update your own token calls',
+      })
+      return
     }
 
-    const { post_id, launch_date, ...updateData } = data;
+    const { post_id, launch_date, ...updateData } = data
 
     const updatedTokenCall = await TokenMetaModel.updateTokenMeta(post_id, {
       ...updateData,
       launch_date: launch_date ? new Date(launch_date) : undefined,
-    });
+    })
 
     res.status(200).json({
       success: true,
       data: updatedTokenCall,
-    });
+    })
   } catch (error) {
-    console.error("Error updating token call:", error);
+    console.error('Error updating token call:', error)
     res.status(500).json({
       success: false,
-      error: "An error occurred updating the token call.",
-    });
+      error: 'An error occurred updating the token call.',
+    })
   }
-};
+}
 
 /**
  * Mark token as launched
@@ -807,38 +805,38 @@ export const markTokenAsLaunched = async (
   res: Response
 ): Promise<void> => {
   try {
-    const user = req.user!;
-    const user_id = user.id;
+    const user = req.user!
+    const user_id = user.id
 
     // First, verify the user owns the post
-    const post = await PostModel.getPost(req.body.post_id);
+    const post = await PostModel.getPost(req.body.post_id)
     if (!post || post.user_id !== user_id) {
       res.status(403).json({
         success: false,
-        error: "Unauthorized: You can only update your own token calls",
-      });
-      return;
+        error: 'Unauthorized: You can only update your own token calls',
+      })
+      return
     }
 
-    const { post_id, launch_date, initial_price } = req.body;
+    const { post_id, launch_date, initial_price } = req.body
 
     const updatedTokenCall = await TokenMetaModel.markTokenAsLaunched(post_id, {
       launch_date: launch_date ? new Date(launch_date) : undefined,
       initial_price,
-    });
+    })
 
     res.status(200).json({
       success: true,
       data: updatedTokenCall,
-    });
+    })
   } catch (error) {
-    console.error("Error marking token as launched:", error);
+    console.error('Error marking token as launched:', error)
     res.status(500).json({
       success: false,
-      error: "An error occurred marking the token as launched.",
-    });
+      error: 'An error occurred marking the token as launched.',
+    })
   }
-};
+}
 
 /**
  * Search token calls
@@ -848,30 +846,30 @@ export const searchTokenCalls = async (
   res: Response
 ): Promise<void> => {
   try {
-    const query = req.query.query;
+    const query = req.query.query
 
     if (!query) {
       res.status(400).json({
         success: false,
-        error: "Search query is required",
-      });
-      return;
+        error: 'Search query is required',
+      })
+      return
     }
 
-    const tokenCalls = await TokenMetaModel.searchTokenCalls(query);
+    const tokenCalls = await TokenMetaModel.searchTokenCalls(query)
 
     res.status(200).json({
       success: true,
       data: tokenCalls,
-    });
+    })
   } catch (error) {
-    console.error("Error searching token calls:", error);
+    console.error('Error searching token calls:', error)
     res.status(500).json({
       success: false,
-      error: "An error occurred searching token calls.",
-    });
+      error: 'An error occurred searching token calls.',
+    })
   }
-};
+}
 
 /**
  * Get token call by address
@@ -881,30 +879,30 @@ export const getTokenCallByAddress = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { token_address } = req.params;
+    const { token_address } = req.params
 
-    const tokenCall = await TokenMetaModel.getTokenCallByAddress(token_address);
+    const tokenCall = await TokenMetaModel.getTokenCallByAddress(token_address)
 
     if (!tokenCall) {
       res.status(404).json({
         success: false,
-        error: "Token call not found",
-      });
-      return;
+        error: 'Token call not found',
+      })
+      return
     }
 
     res.status(200).json({
       success: true,
       data: tokenCall,
-    });
+    })
   } catch (error) {
-    console.error("Error fetching token call by address:", error);
+    console.error('Error fetching token call by address:', error)
     res.status(500).json({
       success: false,
-      error: "An error occurred fetching the token call.",
-    });
+      error: 'An error occurred fetching the token call.',
+    })
   }
-};
+}
 
 /**
  * Update a post's content
@@ -914,58 +912,58 @@ export const updatePost = async (
   res: Response
 ): Promise<void> => {
   try {
-    const user = req.user!;
-    const user_id = user.id;
+    const user = req.user!
+    const user_id = user.id
 
     // Validate request data using Zod schema
     const { success, data, error } = await updatePostSchema.safeParseAsync(
       req.body
-    );
+    )
 
     if (!success) {
       res.status(400).json({
         success: false,
         error: error.message,
-      });
-      return;
+      })
+      return
     }
 
     // First, verify the user owns the post
-    const post = await PostModel.getPost(data.id);
+    const post = await PostModel.getPost(data.id)
     if (!post) {
       res.status(404).json({
         success: false,
-        error: "Post not found",
-      });
-      return;
+        error: 'Post not found',
+      })
+      return
     }
 
     if (post.user_id !== user_id) {
       res.status(403).json({
         success: false,
-        error: "Unauthorized: You can only update your own posts",
-      });
-      return;
+        error: 'Unauthorized: You can only update your own posts',
+      })
+      return
     }
 
     const updatedPost = await PostModel.updatePost(
       data.id,
       user_id,
       data.content
-    );
+    )
 
     res.status(200).json({
       success: true,
       data: updatedPost,
-    });
+    })
   } catch (error) {
-    console.error("Error updating post:", error);
+    console.error('Error updating post:', error)
     res.status(500).json({
       success: false,
-      error: "An error occurred updating the post.",
-    });
+      error: 'An error occurred updating the post.',
+    })
   }
-};
+}
 
 /**
  * Delete a post
@@ -975,39 +973,92 @@ export const deletePost = async (
   res: Response
 ): Promise<void> => {
   try {
-    const user = req.user!;
-    const user_id = user.id;
-    const { id } = req.params;
+    const user = req.user!
+    const user_id = user.id
+    const { id } = req.params
 
     // First, verify the user owns the post
-    const post = await PostModel.getPost(id);
+    const post = await PostModel.getPost(id)
     if (!post) {
       res.status(404).json({
         success: false,
-        error: "Post not found",
-      });
-      return;
+        error: 'Post not found',
+      })
+      return
     }
 
     if (post.user_id !== user_id) {
       res.status(403).json({
         success: false,
-        error: "Unauthorized: You can only delete your own posts",
-      });
-      return;
+        error: 'Unauthorized: You can only delete your own posts',
+      })
+      return
     }
 
-    await PostModel.deletePost(id, user_id);
+    await PostModel.deletePost(id, user_id)
 
     res.status(200).json({
       success: true,
-      message: "Post deleted successfully",
-    });
+      message: 'Post deleted successfully',
+    })
   } catch (error) {
-    console.error("Error deleting post:", error);
+    console.error('Error deleting post:', error)
     res.status(500).json({
       success: false,
-      error: "An error occurred deleting the post.",
-    });
+      error: 'An error occurred deleting the post.',
+    })
   }
-};
+}
+
+/**
+ * Increment funding amount for a donation post
+ */
+export const incrementFundingAmount = async (
+  req: Request<{ post_id: string }, {}, { amount: number }>,
+  res: Response
+): Promise<void> => {
+  try {
+    const { post_id } = req.params
+    const { amount } = req.body
+
+    if (!amount || amount <= 0) {
+      res.status(400).json({
+        success: false,
+        error: 'Amount must be a positive number',
+      })
+      return
+    }
+
+    // Verify the post exists and is a donation post
+    const post = await PostModel.getPost(post_id)
+    if (!post) {
+      res.status(404).json({
+        success: false,
+        error: 'Post not found',
+      })
+      return
+    }
+
+    if (post.post_type !== 'DONATION') {
+      res.status(400).json({
+        success: false,
+        error: 'This endpoint is only for donation posts',
+      })
+      return
+    }
+
+    // Increment the funding amount
+    const updatedMeta = await FundingMetaModel.incrementAmount(post_id, amount)
+
+    res.status(200).json({
+      success: true,
+      data: updatedMeta,
+    })
+  } catch (error) {
+    console.error('Error incrementing funding amount:', error)
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred updating the funding amount.',
+    })
+  }
+}
