@@ -1,6 +1,8 @@
 import { FundingMetaModel } from '@/models/fundingMeta.model'
+import { MentionModel } from '@/models/mention.model'
 import { PostModel } from '@/models/posts.model'
 import { TokenMetaModel } from '@/models/tokenMeta.model'
+import { NotificationService } from '@/service/notificationService'
 import { PointsService } from '@/service/pointsService'
 import prismaService from '@/service/prismaService'
 import {
@@ -12,6 +14,7 @@ import {
   UpdateTokenCallDto,
   updateTokenCall as updateTokenCallSchema,
 } from '@/utils/dto/socialfi.dto'
+import { parseMentions } from '@/utils/mention.util'
 import { Request, Response } from 'express'
 
 const prisma = prismaService.prisma
@@ -241,6 +244,154 @@ export const followersPosts = async (
 }
 
 /**
+ * Controller function to get posts by a specific user (by tag_name) with pagination
+ * @param req - Express request object. Expects:
+ *   - req.params.tag_name: string (User's tag name)
+ *   - req.query.page: number (optional, default 1)
+ *   - req.query.pageSize: number (optional, default 10)
+ * @param res - Express response object
+ */
+export const getUserPostsByTagName = async (
+  req: Request<
+    { tag_name: string },
+    {},
+    {},
+    { page?: string; pageSize?: string }
+  >,
+  res: Response
+): Promise<void> => {
+  try {
+    const { tag_name } = req.params
+    const user = req.user // Optional - for checking like status
+    const currentUserId = user?.id
+
+    if (!tag_name) {
+      res.status(400).json({
+        success: false,
+        error: 'Tag name is required',
+      })
+      return
+    }
+
+    // Find the user by tag_name
+    const targetUser = await prismaService.prisma.user.findUnique({
+      where: { tag_name },
+      select: { id: true },
+    })
+
+    if (!targetUser) {
+      res.status(404).json({
+        success: false,
+        error: 'User not found',
+      })
+      return
+    }
+
+    const page = parseInt(req.query.page || '1', 10)
+    const page_size = parseInt(req.query.pageSize || '10', 10)
+
+    // Get total count for pagination
+    const totalPosts = await prismaService.prisma.post.count({
+      where: { user_id: targetUser.id },
+    })
+    const totalPages = Math.ceil(totalPosts / page_size)
+
+    // Get paginated posts
+    const posts = await prismaService.prisma.post.findMany({
+      where: { user_id: targetUser.id },
+      skip: (page - 1) * page_size,
+      take: page_size,
+      orderBy: { created_at: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            tag_name: true,
+            display_name: true,
+            profile_picture_url: true,
+          },
+        },
+        _count: {
+          select: {
+            like: true,
+            comment: true,
+          },
+        },
+        funding_meta: {
+          select: {
+            id: true,
+            target_amount: true,
+            current_amount: true,
+            status: true,
+            deadline: true,
+            wallet_address: true,
+            chain_type: true,
+            token_symbol: true,
+          },
+        },
+        token_meta: {
+          select: {
+            id: true,
+            token_address: true,
+            token_name: true,
+            token_symbol: true,
+            logo_url: true,
+            chain_type: true,
+            launch_date: true,
+            price: true,
+            target_price: true,
+            market_cap: true,
+            description: true,
+          },
+        },
+      },
+    })
+
+    // Add like status if user is authenticated
+    const postsWithLikes = await Promise.all(
+      posts.map(async (post) => {
+        if (currentUserId) {
+          const like = await prismaService.prisma.like.findFirst({
+            where: { post_id: post.id, user_id: currentUserId },
+          })
+          return {
+            ...post,
+            like: {
+              status: !!like,
+              id: like?.id,
+            },
+          }
+        }
+        return {
+          ...post,
+          like: {
+            status: false,
+            id: null,
+          },
+        }
+      })
+    )
+
+    res.status(200).json({
+      success: true,
+      data: postsWithLikes,
+      pagination: {
+        page,
+        pageSize: page_size,
+        totalPages,
+        totalPosts,
+      },
+    })
+  } catch (error) {
+    console.error('Error fetching user posts:', error)
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred fetching user posts.',
+    })
+  }
+}
+
+/**
  * Controller function to get a post by its ID, including paginated comments.
  * @param req - Express request object. Expects:
  *   - req.params.id: string (Post ID)
@@ -460,6 +611,66 @@ export const createPost = async (
 
         result.token_meta = tokenMeta
         break
+    }
+
+    // Parse and store mentions, then send notifications
+    try {
+      const tagNames = parseMentions(data.content)
+      if (tagNames.length > 0) {
+        // Find users by tag_name
+        const mentionedUsers = await prisma.user.findMany({
+          where: {
+            tag_name: {
+              in: tagNames,
+            },
+          },
+          select: {
+            id: true,
+            tag_name: true,
+          },
+        })
+
+        // Create mentions for valid users
+        if (mentionedUsers.length > 0) {
+          const mentions = mentionedUsers.map((mentionedUser) => ({
+            user_id: mentionedUser.id,
+            tag_name: mentionedUser.tag_name,
+          }))
+          await MentionModel.createMentions(post.id, mentions)
+
+          // Fetch user profile from database to get display name
+          const userProfile = await prisma.user.findUnique({
+            where: { id: user_id },
+            select: { display_name: true, tag_name: true },
+          })
+          const mentionerName =
+            userProfile?.display_name || userProfile?.tag_name || 'Someone'
+
+          // Send notifications to mentioned users
+          for (const mentionedUser of mentionedUsers) {
+            // Don't notify the post creator if they mention themselves
+            if (mentionedUser.id !== user_id) {
+              try {
+                await NotificationService.sendMentionNotification(
+                  mentionedUser.id,
+                  user_id,
+                  mentionerName,
+                  post.id,
+                  data.content
+                )
+              } catch (notifError) {
+                console.error(
+                  `[createPost] Error sending mention notification to ${mentionedUser.id}:`,
+                  notifError
+                )
+              }
+            }
+          }
+        }
+      }
+    } catch (mentionError) {
+      // Log but don't prevent post creation if mentions can't be stored
+      console.error('[createPost] Error storing mentions:', mentionError)
     }
 
     res.status(201).json({
@@ -951,6 +1162,82 @@ export const updatePost = async (
       user_id,
       data.content
     )
+
+    // Update mentions when post content is updated
+    try {
+      // Get existing mentions before deleting (to avoid notifying already-mentioned users)
+      const existingMentions = await prisma.mention.findMany({
+        where: { post_id: data.id },
+        select: { user_id: true },
+      })
+      const existingMentionedUserIds = new Set(
+        existingMentions.map((m) => m.user_id)
+      )
+
+      // Delete existing mentions
+      await MentionModel.deleteMentionsByPostId(data.id)
+
+      // Parse and create new mentions
+      const tagNames = parseMentions(data.content)
+      if (tagNames.length > 0) {
+        // Find users by tag_name
+        const mentionedUsers = await prisma.user.findMany({
+          where: {
+            tag_name: {
+              in: tagNames,
+            },
+          },
+          select: {
+            id: true,
+            tag_name: true,
+          },
+        })
+
+        // Create mentions for valid users
+        if (mentionedUsers.length > 0) {
+          const mentions = mentionedUsers.map((mentionedUser) => ({
+            user_id: mentionedUser.id,
+            tag_name: mentionedUser.tag_name,
+          }))
+          await MentionModel.createMentions(data.id, mentions)
+
+          // Fetch user profile from database to get display name for notifications
+          const userProfile = await prisma.user.findUnique({
+            where: { id: user_id },
+            select: { display_name: true, tag_name: true },
+          })
+          const mentionerName =
+            userProfile?.display_name || userProfile?.tag_name || 'Someone'
+
+          // Send notifications only to NEWLY mentioned users (not previously mentioned)
+          for (const mentionedUser of mentionedUsers) {
+            // Don't notify the post creator or users who were already mentioned
+            if (
+              mentionedUser.id !== user_id &&
+              !existingMentionedUserIds.has(mentionedUser.id)
+            ) {
+              try {
+                await NotificationService.sendMentionNotification(
+                  mentionedUser.id,
+                  user_id,
+                  mentionerName,
+                  data.id,
+                  data.content
+                )
+              } catch (notifError) {
+                console.error(
+                  `[updatePost] Error sending mention notification to ${mentionedUser.id}:`,
+                  notifError
+                )
+              }
+            }
+          }
+        }
+      }
+    } catch (mentionError) {
+      // Log but don't prevent post update if mentions can't be stored
+      console.error('[updatePost] Error storing mentions:', mentionError)
+    }
 
     res.status(200).json({
       success: true,

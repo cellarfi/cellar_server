@@ -1,11 +1,14 @@
 import {
   addSession,
+  checkSessionStatus,
   deleteSession,
   getActiveSessionsCount,
   getSession,
   getUserSessions,
   revokeAllSessions,
   revokeSession,
+  signOutAllDevices,
+  signOutByDeviceId,
   signOutSession,
   updateLastSeen,
   updateSession,
@@ -28,6 +31,13 @@ router.get('/', authMiddleware(), getUserSessions)
  * @access  Private
  */
 router.get('/count', authMiddleware(), getActiveSessionsCount)
+
+/**
+ * @route   GET /api/sessions/status/:device_id
+ * @desc    Check if a session is still active (for remote logout detection)
+ * @access  Public (device checks if it's been logged out)
+ */
+router.get('/status/:device_id', checkSessionStatus)
 
 /**
  * @route   GET /api/sessions/:sessionId
@@ -63,6 +73,20 @@ router.post('/:sessionId/update-last-seen', authMiddleware(), updateLastSeen)
  * @access  Private
  */
 router.post('/:sessionId/signout', authMiddleware(), signOutSession)
+
+/**
+ * @route   POST /api/sessions/signout-device
+ * @desc    Sign out a session by device ID (remote logout)
+ * @access  Private
+ */
+router.post('/signout-device', authMiddleware(), signOutByDeviceId)
+
+/**
+ * @route   POST /api/sessions/signout-all
+ * @desc    Sign out all sessions for the current user
+ * @access  Private
+ */
+router.post('/signout-all', authMiddleware(), signOutAllDevices)
 
 /**
  * @route   POST /api/sessions/:sessionId/revoke

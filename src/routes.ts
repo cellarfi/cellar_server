@@ -5,6 +5,7 @@ import followRoutes from './routes/follows.route'
 import likeRoutes from './routes/likes.route'
 import meteoraDBCRouter from './routes/meteora/meteoraDBCRoutes'
 import nftRoutes from './routes/nft.route'
+import notificationRoutes from './routes/notifications.route'
 import pointsRoutes from './routes/points.route'
 import postRoutes from './routes/posts.route'
 import { launchRouter } from './routes/pumpfun/pumpfunLaunch' // import { buildCompressedNftListingTx } from './utils/compressedNftListing';
@@ -32,11 +33,13 @@ export const injectRoutes = (app: express.Express) => {
   app.use('/api/aura', auraRouter)
   app.use('/api/meteora', meteoraDBCRouter)
   app.use('/api/nft', nftRoutes)
-  app.use('/api/posts', postRoutes)
+  // More specific routes must come before less specific ones
   app.use('/api/posts/likes', likeRoutes)
   app.use('/api/posts/comments', commentRoutes)
+  app.use('/api/posts', postRoutes)
   app.use('/api/follows', followRoutes)
   app.use('/api/points', pointsRoutes)
   app.use('/api/analytics', analyticsRoutes)
   app.use('/api/upload', uploadRoutes)
+  app.use('/api/notifications', notificationRoutes)
 }

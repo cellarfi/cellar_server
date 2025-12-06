@@ -1,4 +1,5 @@
 import { SessionModel } from '@/models/session.model'
+import { FCMService } from '@/service/fcmService'
 import { PointsService } from '@/service/pointsService'
 import prismaService from '@/service/prismaService'
 import {
@@ -37,7 +38,60 @@ export const addSession = async (
       return
     }
 
+    // Get existing active sessions BEFORE creating the new one
+    const existingSessions = await SessionModel.getUserSessions({
+      user_id,
+      status: 'ACTIVE',
+    })
+
+    // Create the new session
     const session = await SessionModel.createSession(data)
+
+    // Notify other devices about the new login
+    try {
+      // Filter out the current device's token and get other device tokens
+      const otherDeviceTokens = existingSessions
+        .filter((s: any) => s.push_token && s.push_token !== data.push_token)
+        .map((s: any) => s.push_token)
+
+      if (otherDeviceTokens.length > 0) {
+        // Build device info string for notification
+        const deviceInfo =
+          data.device_name || data.device_model || 'Unknown device'
+        const platformInfo = data.platform ? ` (${data.platform})` : ''
+        const locationInfo =
+          data.city && data.country
+            ? ` from ${data.city}, ${data.country}`
+            : data.country
+            ? ` from ${data.country}`
+            : ''
+
+        await FCMService.sendToTokens(otherDeviceTokens, {
+          title: '🔐 New Login Detected',
+          body: `Your account was accessed on ${deviceInfo}${platformInfo}${locationInfo}`,
+          data: {
+            type: 'NEW_LOGIN',
+            session_id: session.id,
+            device_id: data.device_id,
+            device_name: data.device_name || '',
+            platform: data.platform || '',
+            city: data.city || '',
+            country: data.country || '',
+            timestamp: new Date().toISOString(),
+          },
+        })
+
+        console.log(
+          `[addSession] Notified ${otherDeviceTokens.length} other device(s) about new login for user ${user_id}`
+        )
+      }
+    } catch (notifError) {
+      // Log but don't fail the session creation
+      console.error(
+        '[addSession] Error sending new login notification:',
+        notifError
+      )
+    }
 
     res.status(201).json({
       success: true,
@@ -364,13 +418,15 @@ export const updateLastSeen = async (
       const now = new Date()
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()) // Midnight today
       const lastReward = lastDailyLoginReward[user_id]
-      
+
       // Award points if they haven't received daily login points today yet
       if (!lastReward || lastReward < today) {
         // Check if this is their first activity of the day
         const startOfDay = today.toISOString()
-        const endOfDay = new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()
-        
+        const endOfDay = new Date(
+          today.getTime() + 24 * 60 * 60 * 1000
+        ).toISOString()
+
         // Check if they already have daily login points for today
         const existingDailyLogin = await prismaService.prisma.point.findFirst({
           where: {
@@ -378,29 +434,34 @@ export const updateLastSeen = async (
             source: 'DAILY_LOGIN',
             created_at: {
               gte: startOfDay,
-              lt: endOfDay
-            }
-          }
+              lt: endOfDay,
+            },
+          },
         })
-        
+
         if (!existingDailyLogin) {
           // Award daily login points
-          await PointsService.awardPoints(user_id, 'DAILY_LOGIN', { 
+          await PointsService.awardPoints(user_id, 'DAILY_LOGIN', {
             login_date: now.toISOString(),
-            session_id
+            session_id,
           })
-          
+
           // Update the cache
           lastDailyLoginReward[user_id] = now
-          
-          console.log(`[updateLastSeen] Awarded daily login points to user ${user_id}`)
+
+          console.log(
+            `[updateLastSeen] Awarded daily login points to user ${user_id}`
+          )
         }
       }
     } catch (pointsError) {
       // Log but don't affect the main functionality
-      console.error('[updateLastSeen] Error awarding daily login points:', pointsError)
+      console.error(
+        '[updateLastSeen] Error awarding daily login points:',
+        pointsError
+      )
     }
-    
+
     res.json({
       success: true,
       message: 'Last seen updated successfully',
@@ -487,6 +548,110 @@ export const getActiveSessionsCount = async (
     res.status(500).json({
       success: false,
       error: 'An error occurred retrieving active sessions count',
+    })
+  }
+}
+
+/**
+ * Check if a session is still active (for remote logout detection)
+ */
+export const checkSessionStatus = async (
+  req: Request<{ device_id: string }>,
+  res: Response
+): Promise<void> => {
+  try {
+    const { device_id } = req.params
+
+    if (!device_id) {
+      res.status(400).json({
+        success: false,
+        error: 'Device ID is required',
+      })
+      return
+    }
+
+    const isActive = await SessionModel.isSessionActive(device_id)
+
+    res.json({
+      success: true,
+      data: {
+        is_active: isActive,
+        device_id,
+      },
+    })
+  } catch (err: any) {
+    console.error('[checkSessionStatus] Error:', err)
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred checking session status',
+    })
+  }
+}
+
+/**
+ * Sign out a session by device ID (remote logout)
+ */
+export const signOutByDeviceId = async (
+  req: Request<{}, {}, { device_id: string }>,
+  res: Response
+): Promise<void> => {
+  try {
+    const user_id = req.user!.id
+    const { device_id } = req.body
+
+    if (!device_id) {
+      res.status(400).json({
+        success: false,
+        error: 'Device ID is required',
+      })
+      return
+    }
+
+    const result = await SessionModel.signOutByDeviceId(device_id, user_id)
+
+    if (result.count === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Session not found or access denied',
+      })
+      return
+    }
+
+    res.json({
+      success: true,
+      message: 'Device signed out successfully',
+    })
+  } catch (err: any) {
+    console.error('[signOutByDeviceId] Error:', err)
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred signing out the device',
+    })
+  }
+}
+
+/**
+ * Sign out all sessions for the current user
+ */
+export const signOutAllDevices = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const user_id = req.user!.id
+
+    const result = await SessionModel.signOutAllSessions(user_id)
+
+    res.json({
+      success: true,
+      message: `Signed out ${result.count} devices`,
+      data: { count: result.count },
+    })
+  } catch (err: any) {
+    console.error('[signOutAllDevices] Error:', err)
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred signing out all devices',
     })
   }
 }

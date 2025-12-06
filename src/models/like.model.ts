@@ -14,7 +14,7 @@ export class LikeModel {
   }
 
   static async deleteLike(like: deleteLikeDto) {
-    return prisma.like.delete({
+    return await prisma.like.delete({
       where: {
         id: like.id,
         post_id: like.post_id,

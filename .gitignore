@@ -21,3 +21,5 @@ temp/
 app.yaml
 cloudbuild.yaml
 deploy.sh
+serviceAccountKey.json
+firebase-admin.json

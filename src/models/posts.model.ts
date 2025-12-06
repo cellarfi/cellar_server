@@ -294,6 +294,7 @@ export class PostModel {
         post_type: true,
         created_at: true,
         content: true,
+        media: true,
         user: {
           select: {
             id: true,

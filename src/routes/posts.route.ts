@@ -11,6 +11,7 @@ import {
   getTokenCalls,
   getTrendingTokenCalls,
   getUserFundraisingPosts,
+  getUserPostsByTagName,
   incrementFundingAmount,
   markTokenAsLaunched,
   searchPosts,
@@ -38,6 +39,7 @@ router.get('/search', searchPosts)
 router.use(authMiddleware(false))
 router.get('/', getPosts)
 router.get('/trending', trendingPosts)
+router.get('/user/:tag_name', getUserPostsByTagName) // Get user posts by tag_name with pagination
 router.get('/:id', getPost)
 
 // Funding statistics (public)
