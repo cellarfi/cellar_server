@@ -292,7 +292,8 @@ export class NotificationService {
   static async sendNewFollowerNotification(
     followedUserId: string,
     followerId: string,
-    followerName: string
+    followerName: string,
+    followerTagName: string
   ) {
     return this.sendNotification({
       userId: followedUserId,
@@ -302,7 +303,7 @@ export class NotificationService {
       body: `${followerName} started following you`,
       data: {
         screen: 'profile',
-        userId: followerId,
+        tagName: followerTagName,
       },
     })
   }
@@ -364,4 +365,3 @@ export class NotificationService {
     return FCMService.sendToToken(token, payload)
   }
 }
-

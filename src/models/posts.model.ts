@@ -9,9 +9,22 @@ const prisma = prismaService.prisma
 export class PostModel {
   /**
    * Get all posts
+   * @param skip - Number of posts to skip for pagination
+   * @param page_size - Number of posts to return
+   * @param excludedUserIds - Optional array of user IDs to exclude (for blocking)
    */
-  static async getPosts(skip: number, page_size: number) {
+  static async getPosts(
+    skip: number,
+    page_size: number,
+    excludedUserIds?: string[]
+  ) {
+    const whereClause =
+      excludedUserIds && excludedUserIds.length > 0
+        ? { user_id: { notIn: excludedUserIds } }
+        : {}
+
     return prisma.post.findMany({
+      where: whereClause,
       include: {
         _count: { select: { comment: true, like: true } },
         user: {

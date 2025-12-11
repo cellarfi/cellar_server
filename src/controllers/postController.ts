@@ -1,3 +1,4 @@
+import { BlockModel } from '@/models/block.model'
 import { FundingMetaModel } from '@/models/fundingMeta.model'
 import { MentionModel } from '@/models/mention.model'
 import { PostModel } from '@/models/posts.model'
@@ -50,7 +51,16 @@ export const getPosts = async (
 
   const skip = (page - 1) * page_size
   const take = page_size
-  const totalPosts = await prisma.post.count()
+
+  // Get blocked user IDs to filter out
+  let blockedIds: string[] = []
+  if (user_id) {
+    blockedIds = await BlockModel.getAllBlockedIds(user_id)
+  }
+
+  const totalPosts = await prisma.post.count({
+    where: blockedIds.length > 0 ? { user_id: { notIn: blockedIds } } : {},
+  })
   const totalPages = Math.ceil(totalPosts / page_size)
 
   // Calculate total pages based on total posts and page size
@@ -70,7 +80,7 @@ export const getPosts = async (
 
   // Fetch posts with pagination
   try {
-    const posts = await PostModel.getPosts(skip, take)
+    const posts = await PostModel.getPosts(skip, take, blockedIds)
     const postsWithLikes = await Promise.all(
       posts.map(async (post: any) => {
         const like = await prismaService.prisma.like.findFirst({
@@ -357,14 +367,16 @@ export const getUserPostsByTagName = async (
           return {
             ...post,
             like: {
+              count: post._count.like,
               status: !!like,
-              id: like?.id,
+              id: like?.id || null,
             },
           }
         }
         return {
           ...post,
           like: {
+            count: post._count.like,
             status: false,
             id: null,
           },
@@ -452,6 +464,18 @@ export const getPost = async (
       where: { post_id: post.id, user_id: user_id },
     })
 
+    // Check if current user is following the post author
+    let is_following = false
+    if (user_id && post.user_id && post.user_id !== user_id) {
+      const followRecord = await prismaService.prisma.follower.findFirst({
+        where: {
+          user_id: post.user_id,
+          follower_id: user_id as string,
+        },
+      })
+      is_following = !!followRecord
+    }
+
     // Process comments to add like count and status
     const commentsWithLikeStatus = post.comment.map((comment) => ({
       ...comment,
@@ -465,6 +489,7 @@ export const getPost = async (
 
     let postWithLikes = {
       ...post,
+      is_following,
       like: {
         count: post._count.like,
         status: !!like,

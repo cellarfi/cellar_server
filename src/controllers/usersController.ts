@@ -24,6 +24,7 @@ export const getProfile = async (
     const includeParams = parseUserInclude(req.query)
 
     const user = await UsersModel.getUserById(user_id, includeParams)
+    console.log('user', user?._count)
 
     if (!user) {
       res.status(404).json({
@@ -63,7 +64,11 @@ export const getUserByTagName = async (
     // Parse include parameters from query string
     const includeParams = parseUserInclude(req.query)
 
-    const user = await UsersModel.getUserByTagName(tag_name, includeParams)
+    const user = await UsersModel.getUserByTagName(
+      tag_name,
+      includeParams,
+      req.user?.id
+    )
     if (!user) {
       res.status(404).json({
         success: false,

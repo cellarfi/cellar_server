@@ -37,8 +37,8 @@ model User {
   sessions     Session[]
   post         Post[]
   comments     Comment[]
-  followers    Follower[]
-  following    Following[]
+  followers    Follower[]    @relation("UserFollowers")
+  following    Follower[]    @relation("UserFollowing")
   like         Like[]
   receivedTips Tip[]         @relation("UserReceivedTips")
   givenTips    Tip[]         @relation("UserGivenTips")
@@ -61,6 +61,18 @@ model User {
   @@index([referral_code])
   @@index([referred_by])
   @@map("users")
+}
+
+model Follower {
+  id          String   @id @default(cuid())
+  user_id     String
+  follower_id String
+  created_at  DateTime @default(now()) @db.Timestamptz
+  updated_at  DateTime @updatedAt @db.Timestamptz
+
+  // Relations 
+  user     User @relation("UserFollowers", fields: [user_id], references: [id], onDelete: Cascade)
+  follower User @relation("UserFollowing", fields: [follower_id], references: [id], onDelete: Cascade)
 }
 
 model Wallet {
@@ -297,31 +309,6 @@ model Tip {
   @@map("tips")
 }
 
-model Follower {
-  id          String   @id @default(cuid())
-  user_id     String
-  follower_id String
-  created_at  DateTime @default(now()) @db.Timestamptz
-  updated_at  DateTime @updatedAt @db.Timestamptz
-
-  // Relations 
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
-}
-
-model Following {
-  id          String @id @default(cuid())
-  user_id     String
-  follower_id String
-
-  created_at DateTime @default(now()) @db.Timestamptz
-  updated_at DateTime @updatedAt @db.Timestamptz
-
-  // Relations 
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@map("followers")
-}
-
 enum DeviceStatus {
   ACTIVE
   SIGNED_OUT
@@ -449,4 +436,48 @@ enum NotificationType {
   COMMENT_REPLY // Someone replied to your comment
   NEW_FOLLOWER // Someone followed you
   SYSTEM // System notification
+}
+
+// =============================================
+// Content Moderation Models (Apple Guideline 1.2)
+// =============================================
+
+model Block {
+  id         String   @id @default(cuid())
+  blocker_id String // User who initiated the block
+  blocked_id String // User who was blocked
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  @@unique([blocker_id, blocked_id])
+  @@index([blocker_id])
+  @@index([blocked_id])
+  @@map("blocks")
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  reporter_id String // User who submitted the report
+  target_type ReportType // POST or USER
+  target_id   String // post_id or user_id being reported
+  reason      String       @db.Text // Reason for the report
+  status      ReportStatus @default(PENDING)
+  created_at  DateTime     @default(now()) @db.Timestamptz
+  updated_at  DateTime     @updatedAt @db.Timestamptz
+
+  @@index([reporter_id])
+  @@index([target_type, target_id])
+  @@index([status])
+  @@map("reports")
+}
+
+enum ReportType {
+  POST
+  USER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
 }

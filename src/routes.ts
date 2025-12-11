@@ -1,9 +1,11 @@
 import express from 'express'
+import analyticsRoutes from './routes/analytics.route'
 import auraRouter from './routes/aura.route'
 import commentRoutes from './routes/comments.route'
 import followRoutes from './routes/follows.route'
 import likeRoutes from './routes/likes.route'
 import meteoraDBCRouter from './routes/meteora/meteoraDBCRoutes'
+import moderationRoutes from './routes/moderation.route'
 import nftRoutes from './routes/nft.route'
 import notificationRoutes from './routes/notifications.route'
 import pointsRoutes from './routes/points.route'
@@ -15,10 +17,9 @@ import sessionRoutes from './routes/sessions.route'
 import jupiterSwapRouter from './routes/swap/jupiterSwapRoutes'
 import raydiumSwapRouter from './routes/swap/raydiumSwapRoutes'
 import tokenRoutes from './routes/token.route'
+import uploadRoutes from './routes/upload.route'
 import usersRoutes from './routes/users.route'
 import walletRoutes from './routes/wallet.route'
-import analyticsRoutes from './routes/analytics.route'
-import uploadRoutes from './routes/upload.route'
 
 export const injectRoutes = (app: express.Express) => {
   app.use('/api/wallet', walletRoutes)
@@ -42,4 +43,5 @@ export const injectRoutes = (app: express.Express) => {
   app.use('/api/analytics', analyticsRoutes)
   app.use('/api/upload', uploadRoutes)
   app.use('/api/notifications', notificationRoutes)
+  app.use('/api/moderation', moderationRoutes)
 }

@@ -117,10 +117,12 @@ export const followUser = async (
       })
       const followerName =
         userProfile?.display_name || userProfile?.tag_name || 'Someone'
+      const followerTagName = userProfile?.tag_name || user_id
       await NotificationService.sendNewFollowerNotification(
         id,
         user_id,
-        followerName
+        followerName,
+        followerTagName
       )
     } catch (notificationError) {
       // Log but don't prevent follow if notification fails
