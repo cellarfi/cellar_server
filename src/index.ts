@@ -8,6 +8,7 @@ import { WebSocketService } from './service/websocketService'
 import { setupConnection } from './utils/connection'
 
 const app = express()
+
 injectMiddleware(app)
 
 // Create HTTP server for Socket.IO
@@ -113,7 +114,7 @@ const PORT = process.env.PORT || 8080
   server.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`)
     console.log(
-      `WebSocket server initialized. Environment: ${process.env.NODE_ENV}`
+      `WebSocket server initialized. Environment: ${process.env.NODE_ENV}`,
     )
     console.log(`Server started at: ${new Date().toISOString()}`)
     console.log(`WebSocket enabled: ${process.env.WEBSOCKET_ENABLED || 'true'}`)

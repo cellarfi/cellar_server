@@ -43,6 +43,7 @@ export const authMiddleware =
       req.user.id = user.id.split(':').pop() || user.id
       next()
     } catch (error) {
+      console.error('Error verifying authentication:', error)
       if (required) {
         console.error('Error verifying authentication:', error)
         res.status(401).json({ error: 'Unauthorized' })

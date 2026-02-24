@@ -24,7 +24,6 @@ export const getProfile = async (
     const includeParams = parseUserInclude(req.query)
 
     const user = await UsersModel.getUserById(user_id, includeParams)
-    console.log('user', user?._count)
 
     if (!user) {
       res.status(404).json({
