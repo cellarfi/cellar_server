@@ -19,6 +19,7 @@ import raydiumSwapRouter from './routes/swap/raydiumSwapRoutes'
 import tokenRoutes from './routes/token.route'
 import uploadRoutes from './routes/upload.route'
 import usersRoutes from './routes/users.route'
+import socialfiV2Routes from './routes/socialfiV2.route'
 import walletRoutes from './routes/wallet.route'
 
 export const injectRoutes = (app: express.Express) => {
@@ -44,4 +45,5 @@ export const injectRoutes = (app: express.Express) => {
   app.use('/api/upload', uploadRoutes)
   app.use('/api/notifications', notificationRoutes)
   app.use('/api/moderation', moderationRoutes)
+  app.use('/api', socialfiV2Routes)
 }

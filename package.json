@@ -8,9 +8,7 @@
     "dev": "pnpx tsx watch src/index.ts",
     "build": "rimraf dist && npx prisma generate && npx tsc && tsc-alias",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy": "gcloud app deploy app.yaml",
-    "android": "expo run:android",
-    "ios": "expo run:ios"
+    "deploy": "gcloud app deploy app.yaml"
   },
   "keywords": [],
   "author": "",
@@ -44,10 +42,6 @@
     "cors": "^2.8.5",
     "decimal.js": "^10.5.0",
     "dotenv": "^16.4.7",
-    "expo-apple-authentication": "^7.1.3",
-    "expo-auth-session": "^6.0.3",
-    "expo-crypto": "^14.0.2",
-    "expo-server-sdk": "^3.15.0",
     "express": "^4.21.2",
     "firebase-admin": "^13.6.0",
     "form-data": "^4.0.2",
@@ -62,13 +56,12 @@
     "pg": "^8.14.1",
     "pinata": "^2.3.0",
     "pumpdotfun-sdk": "^1.3.2",
+    "react": "18.3.1",
     "sharp": "^0.33.5",
+    "socialfi": "^0.1.14",
     "socket.io": "^4.7.4",
     "uuid": "^11.1.0",
-    "zod": "^3.25.67",
-    "expo": "~52.0.47",
-    "react": "18.3.1",
-    "react-native": "0.76.9"
+    "zod": "^3.25.67"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.6",

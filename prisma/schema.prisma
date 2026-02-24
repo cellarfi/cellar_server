@@ -22,6 +22,7 @@ model User {
   tag_name            String  @unique
   profile_picture_url String?
   about               String? @db.Text()
+  tapestry_profile_id String?
 
   // Referral system fields
   referral_code String? @unique // User's unique referral code
@@ -154,6 +155,8 @@ model Post {
 
   // Keep post_type for easy filtering
   post_type PostType @default(REGULAR)
+
+  tapestry_content_id String?
 
   created_at DateTime @default(now()) @db.Timestamptz()
   updated_at DateTime @updatedAt @db.Timestamptz()
@@ -373,6 +376,9 @@ model Mention {
   tag_name   String // The tag_name that was mentioned (for quick lookup)
   created_at DateTime @default(now()) @db.Timestamptz
 
+  // Tapestry v2 identifier for content-based mentions
+  tapestry_content_id String?
+
   // Relations
   post Post @relation(fields: [post_id], references: [id], onDelete: Cascade)
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -417,6 +423,10 @@ model Notification {
   post_id    String? // Reference to related post
   comment_id String? // Reference to related comment
   actor_id   String? // User who triggered the notification (e.g., liker, commenter)
+
+  // Tapestry v2 identifiers
+  tapestry_content_id String?
+  tapestry_comment_id String?
 
   // Relations
   user  User  @relation("NotificationRecipient", fields: [user_id], references: [id], onDelete: Cascade)

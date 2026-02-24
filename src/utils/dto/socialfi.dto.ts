@@ -166,6 +166,49 @@ export const createUnifiedPost = z.discriminatedUnion('post_type', [
   }),
 ])
 
+// V2 DTOs for Tapestry-backed SocialFi (all IDs are Tapestry IDs, not local DB IDs)
+export const followUserV2Schema = z.object({
+  target_user_id: z.string().optional(),
+  target_tag_name: z.string().optional(),
+}).refine(
+  (data) => data.target_user_id || data.target_tag_name,
+  {
+    message: 'Either target_user_id or target_tag_name is required',
+    path: ['target_user_id'],
+  },
+)
+
+export const createPostV2Schema = z.intersection(
+  createUnifiedPost,
+  z.object({
+    // Allow clients to override execution behavior in the future if needed
+    tapestry_execution_mode: z
+      .enum(['FAST_UNCONFIRMED', 'QUICK_SIGNATURE', 'CONFIRMED_AND_PARSED'])
+      .optional(),
+  })
+)
+
+// For v2, `post_id` in createCommentV2Schema is treated as the Tapestry content ID
+export const createCommentV2Schema = createCommentSchema.extend({
+  tapestry_execution_mode: z
+    .enum(['FAST_UNCONFIRMED', 'QUICK_SIGNATURE', 'CONFIRMED_AND_PARSED'])
+    .optional(),
+  // Optional key/value metadata for rich comments (e.g. attachments, custom fields)
+  properties: z
+    .array(
+      z.object({
+        key: z.string(),
+        value: z.union([z.string(), z.number(), z.boolean()]),
+      }),
+    )
+    .optional(),
+})
+
+// For v2, `post_id` is treated as the Tapestry content/node ID
+export const likePostV2Schema = z.object({
+  post_id: z.string(),
+})
+
 export type CreatePostDto = z.infer<typeof createPost>
 export type UpdatePostDto = z.infer<typeof updatePost>
 export type CreateFundraisingPostDto = z.infer<typeof createFundraisingPost>
@@ -181,3 +224,7 @@ export type UpdateFundraisingStatusDto = z.infer<typeof updateFundraisingStatus>
 export type CreateTokenCallDto = z.infer<typeof createTokenCall>
 export type UpdateTokenCallDto = z.infer<typeof updateTokenCall>
 export type CreateUnifiedPostDto = z.infer<typeof createUnifiedPost>
+export type FollowUserV2Dto = z.infer<typeof followUserV2Schema>
+export type CreatePostV2Dto = z.infer<typeof createPostV2Schema>
+export type CreateCommentV2Dto = z.infer<typeof createCommentV2Schema>
+export type LikePostV2Dto = z.infer<typeof likePostV2Schema>

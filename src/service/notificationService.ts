@@ -20,6 +20,9 @@ export interface SendNotificationOptions {
   // Related entities
   postId?: string
   commentId?: string
+  // Tapestry v2 identifiers (for experimental SocialFi)
+  tapestryContentId?: string
+  tapestryCommentId?: string
   // Whether to send push notification (default: true)
   sendPush?: boolean
   // Rate limit: prevent duplicate notifications within X minutes
@@ -54,6 +57,8 @@ export class NotificationService {
         data,
         postId,
         commentId,
+        tapestryContentId,
+        tapestryCommentId,
         sendPush = true,
         rateLimitMinutes = 5,
       } = options
@@ -100,6 +105,8 @@ export class NotificationService {
         post_id: postId,
         comment_id: commentId,
         actor_id: actorId,
+        tapestry_content_id: tapestryContentId,
+        tapestry_comment_id: tapestryCommentId,
       }
 
       const notification = await NotificationModel.createNotification(

@@ -12,6 +12,8 @@ export interface CreateNotificationDto {
   post_id?: string
   comment_id?: string
   actor_id?: string
+  tapestry_content_id?: string
+  tapestry_comment_id?: string
 }
 
 export interface NotificationQueryDto {
@@ -37,6 +39,8 @@ export class NotificationModel {
         post_id: dto.post_id,
         comment_id: dto.comment_id,
         actor_id: dto.actor_id,
+        tapestry_content_id: dto.tapestry_content_id,
+        tapestry_comment_id: dto.tapestry_comment_id,
       },
       include: {
         actor: {
@@ -67,6 +71,8 @@ export class NotificationModel {
         post_id: dto.post_id,
         comment_id: dto.comment_id,
         actor_id: dto.actor_id,
+        tapestry_content_id: dto.tapestry_content_id,
+        tapestry_comment_id: dto.tapestry_comment_id,
       })),
       skipDuplicates: true,
     })

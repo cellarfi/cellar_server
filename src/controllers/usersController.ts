@@ -1,5 +1,6 @@
 import { ERROR_MESSAGES } from '@/constants/app.constants'
 import { UsersModel } from '@/models/user.model'
+import { TapestryService } from '@/service/tapestryService'
 import { parseUserInclude, UserIncludeQuery } from '@/types/include.types'
 import {
   CreateUserDto,
@@ -15,7 +16,7 @@ import { Request, Response } from 'express'
 
 export const getProfile = async (
   req: Request<{}, {}, {}, UserIncludeQuery>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const user_id = req.user!.id
@@ -48,7 +49,7 @@ export const getProfile = async (
 
 export const getUserByTagName = async (
   req: Request<{ tag_name: string }, {}, {}, UserIncludeQuery>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const tag_name = req.params.tag_name
@@ -66,7 +67,7 @@ export const getUserByTagName = async (
     const user = await UsersModel.getUserByTagName(
       tag_name,
       includeParams,
-      req.user?.id
+      req.user?.id,
     )
     if (!user) {
       res.status(404).json({
@@ -89,9 +90,73 @@ export const getUserByTagName = async (
   }
 }
 
+export const getUserByTagNameV2 = async (
+  req: Request<{ tag_name: string }, {}, {}, UserIncludeQuery>,
+  res: Response,
+): Promise<void> => {
+  try {
+    const tag_name = req.params.tag_name
+    if (!tag_name) {
+      res.status(400).json({
+        success: false,
+        error: 'Tag name is required',
+      })
+      return
+    }
+
+    const includeParams = parseUserInclude(req.query)
+    const user = await UsersModel.getUserByTagName(
+      tag_name,
+      includeParams,
+      req.user?.id,
+    )
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: 'User not found',
+      })
+      return
+    }
+
+    let _count = user._count
+    if (user.tapestry_profile_id) {
+      try {
+        const details = await TapestryService.getProfileDetails(
+          user.tapestry_profile_id,
+        )
+        const counts = (details as any)?.socialCounts
+        if (counts && typeof counts.followers === 'number' && typeof counts.following === 'number') {
+          _count = {
+            ...user._count,
+            followers: counts.followers,
+            following: counts.following,
+          }
+        }
+      } catch (tapErr) {
+        console.error('[getUserByTagNameV2] Tapestry getProfileDetails failed:', tapErr)
+        // keep local _count on Tapestry failure
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        ...user,
+        _count,
+      },
+    })
+  } catch (err: any) {
+    console.error('[getUserByTagNameV2] Error:', err)
+    res.status(500).json({
+      success: false,
+      error: 'An error occurred retrieving the user by tag name',
+    })
+  }
+}
+
 export const checkIfTagNameExists = async (
   req: Request<{ tag_name: string }>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const tag_name = req.params.tag_name
@@ -119,7 +184,7 @@ export const checkIfTagNameExists = async (
 
 export const createUser = async (
   req: Request<{}, {}, CreateUserDto>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const id = req.user!.id
@@ -147,11 +212,37 @@ export const createUser = async (
       is_default: true,
     })
 
+    // Best-effort registration of Tapestry profile
+    let tapestryProfileId: string | undefined
+    try {
+      const profile = await TapestryService.findOrCreateProfile({
+        walletAddress: req.user!.wallet!.address,
+        username: user.tag_name,
+        displayName: user.display_name,
+        avatarUrl: user.profile_picture_url,
+        bio: user.about ?? undefined,
+        properties: [
+          { key: 'referral_code', value: user.referral_code ?? '' },
+          { key: 'referred_by', value: user.referred_by ?? '' },
+        ],
+      })
+
+      tapestryProfileId = profile.id
+
+      await UsersModel.setTapestryProfileId(user.id, profile.id)
+    } catch (tapestryError) {
+      console.error(
+        '[createUser] Error registering Tapestry profile:',
+        tapestryError,
+      )
+    }
+
     res.status(201).json({
       success: true,
       data: {
         user: {
           ...user,
+          tapestry_profile_id: tapestryProfileId ?? user.tapestry_profile_id,
           wallet,
         },
       },
@@ -189,7 +280,7 @@ export const createUser = async (
 
 export const createUserWallet = async (
   req: Request<{}, {}, CreateUserWalletDto>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const { success, data, error } =
@@ -236,7 +327,7 @@ export const createUserWallet = async (
 
 export const updateUserDefaultWallet = async (
   req: Request<{}, {}, UpdateUserDefaultWalletDto>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const id = req.user!.id
@@ -279,7 +370,7 @@ export const updateUserDefaultWallet = async (
 
 export const updateProfile = async (
   req: Request<{}, {}, UpdateUserDto>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const id = req.user!.id
@@ -299,6 +390,23 @@ export const updateProfile = async (
     const updatedUser = await UsersModel.updateUser(id, {
       ...data,
     })
+
+    // Best-effort sync of profile updates to Tapestry
+    try {
+      if (updatedUser.tapestry_profile_id) {
+        await TapestryService.updateProfile(updatedUser.tapestry_profile_id, {
+          username: updatedUser.tag_name,
+          displayName: updatedUser.display_name,
+          avatarUrl: updatedUser.profile_picture_url,
+          bio: updatedUser.about ?? undefined,
+        })
+      }
+    } catch (tapestryError) {
+      console.error(
+        '[updateProfile] Error updating Tapestry profile:',
+        tapestryError,
+      )
+    }
 
     res.json({
       success: true,
@@ -336,7 +444,7 @@ export const updateProfile = async (
 
 export const deleteAccount = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const user_id = req.user!.id
@@ -362,7 +470,7 @@ export const deleteAccount = async (
 
 export const searchUsers = async (
   req: Request<{}, {}, {}, { query: string }>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const query = req.query.query
@@ -389,9 +497,63 @@ export const searchUsers = async (
   }
 }
 
+export const registerTapestryProfile = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user!.id
+
+    const user = await UsersModel.getUserById(userId)
+    console.log('user', req.user!.wallet!.address)
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: 'User not found',
+      })
+      return
+    }
+
+    console.log('defaultWallet', req.user!.wallet!.address)
+    if (!req.user!.wallet!.address) {
+      res.status(400).json({
+        success: false,
+        error: 'User has no wallet to associate with Tapestry profile',
+      })
+      return
+    }
+    const profile = await TapestryService.findOrCreateProfile({
+      walletAddress: req.user!.wallet!.address,
+      username: user.tag_name,
+      displayName: user.display_name,
+      avatarUrl: user.profile_picture_url,
+      bio: user.about ?? undefined,
+    })
+
+    const updatedUser = await UsersModel.setTapestryProfileId(
+      user.id,
+      profile.id,
+    )
+
+    res.status(200).json({
+      success: true,
+      data: {
+        user: updatedUser,
+      },
+    })
+  } catch (err: any) {
+    console.error('[registerTapestryProfile] Error:', err)
+    res.status(502).json({
+      success: false,
+      error: err.message || 'Failed to register Tapestry profile',
+    })
+  }
+}
+
 export const getUserProfile = async (
   req: Request<{ tag_name: string }, {}, {}, {}>,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const user_id = req.user!.id

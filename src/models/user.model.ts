@@ -173,6 +173,15 @@ export class UsersModel {
     })
   }
 
+  static async setTapestryProfileId(id: string, tapestryProfileId: string) {
+    return prisma.user.update({
+      where: { id },
+      data: {
+        tapestry_profile_id: tapestryProfileId,
+      },
+    })
+  }
+
   static async deleteUser(user_id: string) {
     await prisma.user.delete({
       where: {

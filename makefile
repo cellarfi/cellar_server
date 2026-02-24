@@ -16,3 +16,9 @@ ppushf:
 
 pstudio:
 	npx prisma studio
+
+.PHONY: run-script
+
+run-script:
+	@read -p "Script name (without extension): " script; \
+	pnpx tsx "src/scripts/$$script.ts"
