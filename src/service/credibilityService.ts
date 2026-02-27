@@ -1,5 +1,5 @@
 import prismaService from '@/service/prismaService'
-import { PostType } from '../../generated/prisma'
+import { CredibilityScore, PostType } from '../../generated/prisma'
 
 const prisma = prismaService.prisma
 
@@ -121,18 +121,18 @@ export class CredibilityService {
       if (totalInteractions > 0) {
         const uniqueInteractorIds = Array.from(new Set(interactionUserIds))
 
-        const interactorScores = await (prisma as any).credibilityScore.findMany(
-          {
-            where: {
-              user_id: {
-                in: uniqueInteractorIds,
-              },
+        const interactorScores = await (
+          prisma as any
+        ).credibilityScore.findMany({
+          where: {
+            user_id: {
+              in: uniqueInteractorIds,
             },
           },
-        )
+        })
 
         const scoreMap = new Map<string, number>()
-        interactorScores.forEach((s) => {
+        interactorScores.forEach((s: CredibilityScore) => {
           const value = Number(s.score)
           if (!Number.isNaN(value)) {
             scoreMap.set(s.user_id, value)
@@ -153,9 +153,7 @@ export class CredibilityService {
 
     // --- 4. Combine metrics with weights ---
     const finalScore =
-      0.5 * callAccuracy +
-      0.3 * followerCredibility +
-      0.2 * engagementQuality
+      0.5 * callAccuracy + 0.3 * followerCredibility + 0.2 * engagementQuality
 
     const clampedScore = Math.max(0, Math.min(100, finalScore))
 
@@ -243,4 +241,3 @@ export class CredibilityService {
     }
   }
 }
-
