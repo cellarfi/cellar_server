@@ -209,6 +209,26 @@ export const likePostV2Schema = z.object({
   post_id: z.string(),
 })
 
+export const logTradeV2Schema = z.object({
+  token_in_mint: z.string(),
+  token_out_mint: z.string(),
+  amount_in: z.string(),
+  amount_out: z.string(),
+  tx_signature: z.string(),
+  usd_value_in: z.number().optional(),
+  usd_value_out: z.number().optional(),
+  wallet_address: z.string().optional(),
+  input_value_sol: z.number().optional(),
+  output_value_sol: z.number().optional(),
+  sol_price: z.number().optional(),
+  trade_type: z.enum(['buy', 'sell']).optional(),
+  slippage: z.number().optional(),
+  priority_fee: z.number().optional(),
+  source: z.string().optional(),
+  source_wallet: z.string().optional(),
+  source_transaction_id: z.string().optional(),
+})
+
 export type CreatePostDto = z.infer<typeof createPost>
 export type UpdatePostDto = z.infer<typeof updatePost>
 export type CreateFundraisingPostDto = z.infer<typeof createFundraisingPost>
@@ -228,3 +248,4 @@ export type FollowUserV2Dto = z.infer<typeof followUserV2Schema>
 export type CreatePostV2Dto = z.infer<typeof createPostV2Schema>
 export type CreateCommentV2Dto = z.infer<typeof createCommentV2Schema>
 export type LikePostV2Dto = z.infer<typeof likePostV2Schema>
+export type LogTradeV2Dto = z.infer<typeof logTradeV2Schema>

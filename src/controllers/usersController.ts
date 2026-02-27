@@ -1,5 +1,6 @@
 import { ERROR_MESSAGES } from '@/constants/app.constants'
 import { UsersModel } from '@/models/user.model'
+import prismaService from '@/service/prismaService'
 import { TapestryService } from '@/service/tapestryService'
 import { parseUserInclude, UserIncludeQuery } from '@/types/include.types'
 import {
@@ -13,6 +14,8 @@ import {
   updateUserSchema,
 } from '@/utils/dto/users.dto'
 import { Request, Response } from 'express'
+
+const prisma = prismaService.prisma
 
 export const getProfile = async (
   req: Request<{}, {}, {}, UserIncludeQuery>,
@@ -125,7 +128,11 @@ export const getUserByTagNameV2 = async (
           user.tapestry_profile_id,
         )
         const counts = (details as any)?.socialCounts
-        if (counts && typeof counts.followers === 'number' && typeof counts.following === 'number') {
+        if (
+          counts &&
+          typeof counts.followers === 'number' &&
+          typeof counts.following === 'number'
+        ) {
           _count = {
             ...user._count,
             followers: counts.followers,
@@ -133,8 +140,44 @@ export const getUserByTagNameV2 = async (
           }
         }
       } catch (tapErr) {
-        console.error('[getUserByTagNameV2] Tapestry getProfileDetails failed:', tapErr)
+        console.error(
+          '[getUserByTagNameV2] Tapestry getProfileDetails failed:',
+          tapErr,
+        )
         // keep local _count on Tapestry failure
+      }
+    }
+
+    // Attach latest credibility score if available and visible
+    const credibility = await (prisma as any).credibilityScore.findUnique({
+      where: {
+        user_id: user.id,
+      },
+    })
+
+    let credibility_score: number = 0
+    let credibility_breakdown: {
+      call_accuracy: number
+      follower_credibility: number
+      engagement_quality: number
+    } = {
+      call_accuracy: 0,
+      follower_credibility: 0,
+      engagement_quality: 0,
+    }
+
+    if (credibility) {
+      credibility_score = Number(credibility.score)
+      credibility_breakdown = {
+        call_accuracy: credibility.call_accuracy
+          ? Number(credibility.call_accuracy)
+          : 0,
+        follower_credibility: credibility.follower_credibility
+          ? Number(credibility.follower_credibility)
+          : 0,
+        engagement_quality: credibility.engagement_quality
+          ? Number(credibility.engagement_quality)
+          : 0,
       }
     }
 
@@ -143,6 +186,8 @@ export const getUserByTagNameV2 = async (
       data: {
         ...user,
         _count,
+        credibility_score: null,
+        credibility_breakdown: null,
       },
     })
   } catch (err: any) {

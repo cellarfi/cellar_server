@@ -50,6 +50,9 @@ model User {
   user_point   UserPoint? // User's consolidated point balance
   mentions     Mention[] // Posts where this user is mentioned
 
+  // Credibility scoring
+  credibility_score CredibilityScore?
+
   // Referral relations
   referrer  User?  @relation("UserReferrals", fields: [referred_by], references: [referral_code])
   referrals User[] @relation("UserReferrals")
@@ -282,6 +285,7 @@ model Comment {
   post_id    String
   content    String
   media      String[] @default([])
+  tapestry_comment_id String?
   created_at DateTime @default(now()) @db.Timestamptz
   updated_at DateTime @updatedAt @db.Timestamptz
   parentId   String?
@@ -405,6 +409,26 @@ model UserPoint {
   @@index([balance])
   @@index([level])
   @@map("user_points")
+}
+
+model CredibilityScore {
+  id                   String   @id @default(cuid())
+  user_id              String   @unique
+  score                Decimal  @db.Decimal(5, 2)
+  call_accuracy        Decimal? @db.Decimal(5, 2)
+  follower_credibility Decimal? @db.Decimal(5, 2)
+  engagement_quality   Decimal? @db.Decimal(5, 2)
+  window_start         DateTime @db.Timestamptz
+  window_end           DateTime @db.Timestamptz
+  computed_at          DateTime @default(now()) @db.Timestamptz
+  created_at           DateTime @default(now()) @db.Timestamptz
+  updated_at           DateTime @updatedAt @db.Timestamptz
+
+  // Relations
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("credibility_scores")
 }
 
 // Notifications system

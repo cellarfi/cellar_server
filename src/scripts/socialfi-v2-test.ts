@@ -9,7 +9,7 @@ const BASE_URL = 'http://localhost:8080/api'
 
 // yung
 const JWT =
-  'eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjJnWnQzX0pnTS1sZ2JvUGRwLUNSSzRqVklWQnhwR2JKd0RpWWZOZTVUQlkifQ.eyJjciI6IjE3NTEzMjY1MDMiLCJsaW5rZWRfYWNjb3VudHMiOiJbe1widHlwZVwiOlwiZW1haWxcIixcImFkZHJlc3NcIjpcInl1bmdtazIwMDJAZ21haWwuY29tXCIsXCJsdlwiOjE3NzE5NDcwMjZ9LHtcImlkXCI6XCJzaTMzaTFqaWJoZjZjNnhxeTdlYnRnNGJcIixcInR5cGVcIjpcIndhbGxldFwiLFwiYWRkcmVzc1wiOlwiSjJQd3huQm45QTdWSGVGTVQ2VGQxQzIzd1ZqV2RyNXhmak5FN3JZNDJKdGFcIixcImNoYWluX3R5cGVcIjpcInNvbGFuYVwiLFwid2FsbGV0X2NsaWVudF90eXBlXCI6XCJwcml2eVwiLFwibHZcIjoxNzUxMzI2NTA1fV0iLCJpc3MiOiJwcml2eS5pbyIsImlhdCI6MTc3MTk3MTE2NSwiYXVkIjoiY21iemU4dzBoMDA2Y2p2MG1xZzJpNTI2NCIsInN1YiI6ImRpZDpwcml2eTpjbWNqcWt5cncwM2RtanYwbXA3Nm9jamtiIiwiZXhwIjoxNzcxOTc0NzY1fQ.soIAgMDF3fAt9l_QB5PT6-xylrYNu8nQEaw4DRVX3OGJO48O6gAUwmqrDUEvTBzPVk8nUojlPuZJSmY0MCwVBg'
+  'eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjJnWnQzX0pnTS1sZ2JvUGRwLUNSSzRqVklWQnhwR2JKd0RpWWZOZTVUQlkifQ.eyJjciI6IjE3NTEzMjY1MDMiLCJsaW5rZWRfYWNjb3VudHMiOiJbe1widHlwZVwiOlwiZW1haWxcIixcImFkZHJlc3NcIjpcInl1bmdtazIwMDJAZ21haWwuY29tXCIsXCJsdlwiOjE3NzE5NDcwMjZ9LHtcImlkXCI6XCJzaTMzaTFqaWJoZjZjNnhxeTdlYnRnNGJcIixcInR5cGVcIjpcIndhbGxldFwiLFwiYWRkcmVzc1wiOlwiSjJQd3huQm45QTdWSGVGTVQ2VGQxQzIzd1ZqV2RyNXhmak5FN3JZNDJKdGFcIixcImNoYWluX3R5cGVcIjpcInNvbGFuYVwiLFwid2FsbGV0X2NsaWVudF90eXBlXCI6XCJwcml2eVwiLFwibHZcIjoxNzUxMzI2NTA1fV0iLCJpc3MiOiJwcml2eS5pbyIsImlhdCI6MTc3MjAxMzM4NywiYXVkIjoiY21iemU4dzBoMDA2Y2p2MG1xZzJpNTI2NCIsInN1YiI6ImRpZDpwcml2eTpjbWNqcWt5cncwM2RtanYwbXA3Nm9jamtiIiwiZXhwIjoxNzcyMDE2OTg3fQ.T6FMY0WgOPcne5shh1Cqz6U0s7-opU_4n4_W9jtemCqkDAXj0tSHbCI_HF56CdHCRsxlY3vWWkgQtCAu4UjDIg'
 
 if (!JWT) {
   console.warn(
@@ -31,7 +31,7 @@ const client = axios.create({
 
 async function main() {
   try {
-    console.log('--- 1. Register Tapestry profile for current user ---')
+    /* console.log('--- 1. Register Tapestry profile for current user ---')
     const registerRes = await client.post('/users/tapestry/register')
     console.log('Status:', registerRes.status)
     console.log('Body:', registerRes.data)
@@ -133,31 +133,90 @@ async function main() {
       'Suggested:',
       suggestedRes.data?.data?.suggested ?? suggestedRes.data,
     )
+    */
 
-    console.log('\n--- 12. Get activity feed (v2) ---')
-    const feedRes = await client.get('/v2/activity/feed/mii')
+    console.log('\n--- 1. Get activity feed (v2) ---')
+    const feedRes = await client.get('/v2/activity/feed/mira')
     console.log('Status:', feedRes.status)
     console.log(
       'Feed (sample):',
       feedRes.data?.data?.activities?.slice?.(0, 3) ?? feedRes.data,
     )
 
-    console.log('\n--- 13. Get swap activity (v2) ---')
-    const swapRes = await client.get('/v2/activity/swap/mii')
-    console.log('Status:', swapRes.status)
-    console.log(
-      'Swap (sample):',
-      swapRes.data?.data?.transactions?.slice?.(0, 2) ?? swapRes.data,
-    )
+    console.log('\n--- 2. Like Tapestry node (generic v2 like) ---')
+    // Replace this with a real Tapestry node id when available
+    const testNodeId = 'dummy-node-id'
+    try {
+      const likeNodeRes = await client.post(`/v2/likes/${testNodeId}`)
+      console.log('Status:', likeNodeRes.status)
+      console.log('Body:', likeNodeRes.data)
+    } catch (e: any) {
+      console.log(
+        '[socialfi-v2-test] likeNodeV2 failed (expected if dummy id):',
+        e?.response?.status,
+        e?.response?.data,
+      )
+    }
 
-    console.log('\n--- 14. Get global activity (v2) ---')
-    const globalRes = await client.get('/v2/activity/global')
-    console.log('Status:', globalRes.status)
-    console.log(
-      'Global (sample):',
-      (globalRes.data?.data as any)?.activities?.slice?.(0, 3) ??
-        globalRes.data,
-    )
+    console.log('\n--- 3. Get likers for node (v2) ---')
+    try {
+      const likersRes = await client.get(`/v2/likes/${testNodeId}`)
+      console.log('Status:', likersRes.status)
+      console.log('Likers:', likersRes.data)
+    } catch (e: any) {
+      console.log(
+        '[socialfi-v2-test] getNodeLikersV2 failed (expected if dummy id):',
+        e?.response?.status,
+        e?.response?.data,
+      )
+    }
+
+    console.log('\n--- 4. Unlike Tapestry node (generic v2 unlike) ---')
+    try {
+      const unlikeNodeRes = await client.delete(`/v2/likes/${testNodeId}`)
+      console.log('Status:', unlikeNodeRes.status)
+      console.log('Body:', unlikeNodeRes.data)
+    } catch (e: any) {
+      console.log(
+        '[socialfi-v2-test] unlikeNodeV2 failed (expected if dummy id):',
+        e?.response?.status,
+        e?.response?.data,
+      )
+    }
+
+    console.log('\n--- 5. Get token owners (v2) ---')
+    // Replace with a real token address when available
+    const testTokenAddress = 'DummyTokenAddress'
+    try {
+      const ownersRes = await client.get(
+        `/v2/tokens/${testTokenAddress}/owners`,
+      )
+      console.log('Status:', ownersRes.status)
+      console.log('Owners (sample):', ownersRes.data)
+    } catch (e: any) {
+      console.log(
+        '[socialfi-v2-test] getTokenOwnersV2 failed (expected if dummy token):',
+        e?.response?.status,
+        e?.response?.data,
+      )
+    }
+
+    // console.log('\n--- 13. Get swap activity (v2) ---')
+    // const swapRes = await client.get('/v2/activity/swap/mii')
+    // console.log('Status:', swapRes.status)
+    // console.log(
+    //   'Swap (sample):',
+    //   swapRes.data?.data?.transactions?.slice?.(0, 2) ?? swapRes.data,
+    // )
+
+    // console.log('\n--- 14. Get global activity (v2) ---')
+    // const globalRes = await client.get('/v2/activity/global')
+    // console.log('Status:', globalRes.status)
+    // console.log(
+    //   'Global (sample):',
+    //   (globalRes.data?.data as any)?.activities?.slice?.(0, 3) ??
+    //     globalRes.data,
+    // )
   } catch (err: any) {
     if (err.response) {
       console.error(

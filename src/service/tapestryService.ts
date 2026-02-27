@@ -41,6 +41,30 @@ export interface TapestryFollowInput {
   followeeProfileId: string
 }
 
+/** Payload for Tapestry POST /trades API (camelCase, required + optional) */
+export interface TapestryLogTradeInput {
+  transactionSignature: string
+  walletAddress: string
+  inputMint: string
+  outputMint: string
+  inputAmount: number
+  outputAmount: number
+  inputValueSOL: number
+  outputValueSOL: number
+  timestamp: number
+  tradeType: 'buy' | 'sell'
+  platform: string
+  profileId?: string
+  inputValueUSD?: number
+  outputValueUSD?: number
+  solPrice?: number
+  source?: string
+  slippage?: number
+  priorityFee?: number
+  sourceWallet?: string
+  sourceTransactionId?: string
+}
+
 export interface TapestryServiceError {
   code: string
   status?: number
@@ -308,6 +332,32 @@ export class TapestryService {
     }
   }
 
+  static async getNodeLikers(nodeId: string) {
+    try {
+      return await tapestryClient.request({
+        path: `/likes/${nodeId}`,
+        type: ContentType.Json,
+        method: 'GET',
+        query: {
+          apiKey: Env.TAPESTRY_API_KEY,
+        },
+      })
+    } catch (error: any) {
+      throw normalizeError(error, 'TAPESTRY_GET_NODE_LIKERS_FAILED')
+    }
+  }
+
+  static async getTokenOwners(tokenAddress: string) {
+    try {
+      return await tapestryClient.profiles.tokenOwnersDetail({
+        tokenAddress,
+        apiKey: Env.TAPESTRY_API_KEY,
+      })
+    } catch (error: any) {
+      throw normalizeError(error, 'TAPESTRY_GET_TOKEN_OWNERS_FAILED')
+    }
+  }
+
   static async getGlobalActivity(params?: {
     page?: string
     pageSize?: string
@@ -325,6 +375,48 @@ export class TapestryService {
       })
     } catch (error: any) {
       throw normalizeError(error, 'TAPESTRY_GET_GLOBAL_ACTIVITY_FAILED')
+    }
+  }
+
+  static async logTrade(payload: TapestryLogTradeInput) {
+    try {
+      const body: Record<string, unknown> = {
+        transactionSignature: payload.transactionSignature,
+        walletAddress: payload.walletAddress,
+        inputMint: payload.inputMint,
+        outputMint: payload.outputMint,
+        inputAmount: payload.inputAmount,
+        outputAmount: payload.outputAmount,
+        inputValueSOL: payload.inputValueSOL,
+        outputValueSOL: payload.outputValueSOL,
+        timestamp: payload.timestamp,
+        tradeType: payload.tradeType,
+        platform: payload.platform,
+      }
+      if (payload.profileId != null) body.profileId = payload.profileId
+      if (payload.inputValueUSD != null)
+        body.inputValueUSD = payload.inputValueUSD
+      if (payload.outputValueUSD != null)
+        body.outputValueUSD = payload.outputValueUSD
+      if (payload.solPrice != null) body.solPrice = payload.solPrice
+      if (payload.source != null) body.source = payload.source
+      if (payload.slippage != null) body.slippage = payload.slippage
+      if (payload.priorityFee != null) body.priorityFee = payload.priorityFee
+      if (payload.sourceWallet != null) body.sourceWallet = payload.sourceWallet
+      if (payload.sourceTransactionId != null)
+        body.sourceTransactionId = payload.sourceTransactionId
+      console.log('body', body)
+      return await tapestryClient.request({
+        path: '/trades',
+        type: ContentType.Json,
+        method: 'POST',
+        query: {
+          apiKey: Env.TAPESTRY_API_KEY,
+        },
+        body,
+      })
+    } catch (error: any) {
+      throw normalizeError(error, 'TAPESTRY_LOG_TRADE_FAILED')
     }
   }
 }

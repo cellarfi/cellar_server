@@ -2,18 +2,28 @@ import { NotificationService } from '@/service/notificationService'
 import { PointsService } from '@/service/pointsService'
 import prismaService from '@/service/prismaService'
 import { TapestryService } from '@/service/tapestryService'
+import { CredibilityService } from '@/service/credibilityService'
+import { FundingMetaModel } from '@/models/fundingMeta.model'
+import { MentionModel } from '@/models/mention.model'
+import { TokenMetaModel } from '@/models/tokenMeta.model'
 import {
   CreateCommentV2Dto,
   CreatePostV2Dto,
   FollowUserV2Dto,
   LikePostV2Dto,
+  LogTradeV2Dto,
   createCommentV2Schema,
   createPostV2Schema,
   followUserV2Schema,
   likePostV2Schema,
+  logTradeV2Schema,
 } from '@/utils/dto/socialfi.dto'
+import { parseMentions } from '@/utils/mention.util'
+import { NATIVE_SOL_MINT, WRAPPED_SOL_MINT } from '@/utils/solana.util'
 import { Request, Response } from 'express'
 import { Follower } from '../../generated/prisma'
+import { LikeModel } from '@/models/like.model'
+import { PostModel } from '@/models/posts.model'
 
 const prisma = prismaService.prisma
 
@@ -263,7 +273,8 @@ export const createPostV2 = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const userId = req.user!.id
+    const user = req.user!
+    const userId = user.id
 
     const { success, data, error } = await createPostV2Schema.safeParseAsync(
       req.body,
@@ -277,7 +288,145 @@ export const createPostV2 = async (
       return
     }
 
-    // Map extra metadata into properties for Tapestry
+    // 1) Create local post using same logic as v1 (double entry)
+    let post: any
+
+    if (data.post_type === 'REGULAR') {
+      post = await PostModel.createPost({
+        content: data.content,
+        media: data.media,
+        user_id: userId,
+      })
+    } else {
+      post = await PostModel.createFundraisingPost(
+        data.content,
+        userId,
+        data.post_type,
+        data.media,
+      )
+    }
+
+    let result: any = { ...post }
+
+    // Award points for post creation based on post type (match v1 behavior)
+    try {
+      if (data.post_type === 'REGULAR') {
+        await PointsService.awardPoints(userId, 'POST_CREATION', {
+          post_id: post.id,
+          post_type: data.post_type,
+        })
+      } else if (data.post_type === 'DONATION') {
+        await PointsService.awardPoints(userId, 'DONATION', {
+          post_id: post.id,
+          post_type: data.post_type,
+        })
+      } else if (data.post_type === 'TOKEN_CALL') {
+        await PointsService.awardPoints(userId, 'TOKEN_LAUNCH', {
+          post_id: post.id,
+          post_type: data.post_type,
+        })
+      }
+    } catch (pointsError) {
+      console.error('[createPostV2] Error awarding points:', pointsError)
+    }
+
+    // Handle specific post types metadata (reuse v1 patterns)
+    switch (data.post_type) {
+      case 'REGULAR':
+        break
+      case 'DONATION': {
+        const fundingMeta = await FundingMetaModel.createFundingMeta({
+          post_id: post.id,
+          target_amount: (data as any).target_amount,
+          wallet_address: (data as any).wallet_address,
+          chain_type: (data as any).chain_type,
+          token_symbol: (data as any).token_symbol,
+          token_address: (data as any).token_address,
+          deadline: (data as any).deadline
+            ? new Date((data as any).deadline)
+            : undefined,
+        })
+        result.funding_meta = fundingMeta
+        break
+      }
+      case 'TOKEN_CALL': {
+        const tokenMeta = await TokenMetaModel.createTokenMeta({
+          post_id: post.id,
+          token_name: (data as any).token_name,
+          token_symbol: (data as any).token_symbol,
+          token_address: (data as any).token_address,
+          chain_type: (data as any).chain_type,
+          logo_url: (data as any).logo_url,
+          launch_date: (data as any).launch_date
+            ? new Date((data as any).launch_date)
+            : undefined,
+          initial_price: (data as any).initial_price,
+          target_price: (data as any).target_price,
+          market_cap: (data as any).market_cap,
+          description: (data as any).description,
+        })
+        result.token_meta = tokenMeta
+        break
+      }
+    }
+
+    // Parse mentions and store them (v1-style)
+    try {
+      const tagNames = parseMentions(data.content)
+      if (tagNames.length > 0) {
+        const mentionedUsers = await prisma.user.findMany({
+          where: {
+            tag_name: {
+              in: tagNames,
+            },
+          },
+          select: {
+            id: true,
+            tag_name: true,
+          },
+        })
+
+        if (mentionedUsers.length > 0) {
+          const mentions = mentionedUsers.map((mentionedUser) => ({
+            user_id: mentionedUser.id,
+            tag_name: mentionedUser.tag_name,
+          }))
+          await MentionModel.createMentions(post.id, mentions)
+
+          const userProfile = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { display_name: true, tag_name: true },
+          })
+          const mentionerName =
+            userProfile?.display_name || userProfile?.tag_name || 'Someone'
+
+          for (const mentionedUser of mentionedUsers) {
+            if (mentionedUser.id !== userId) {
+              try {
+                await NotificationService.sendMentionNotification(
+                  mentionedUser.id,
+                  userId,
+                  mentionerName,
+                  post.id,
+                  data.content,
+                )
+              } catch (notifError) {
+                console.error(
+                  `[createPostV2] Error sending mention notification to ${mentionedUser.id}:`,
+                  notifError,
+                )
+              }
+            }
+          }
+        }
+      }
+    } catch (mentionError) {
+      console.error('[createPostV2] Error storing mentions:', mentionError)
+    }
+
+    // 2) Mirror to Tapestry
+    const { tapestryProfileId } = await ensureTapestryProfileForUser(userId)
+
     const properties: { key: string; value: string | number | boolean }[] = [
       { key: 'post_type', value: data.post_type },
     ]
@@ -298,25 +447,39 @@ export const createPostV2 = async (
       )
     }
 
-    // Ensure Tapestry profile exists
-    const { tapestryProfileId } = await ensureTapestryProfileForUser(userId)
-
-    // Create content on Tapestry only (no local Post row)
     const content = await TapestryService.findOrCreateContent({
       profileId: tapestryProfileId,
-      // Use a Tapestry-native content id; for now we let Tapestry manage identity
       contentId: crypto.randomUUID(),
       properties,
     })
 
-    // Award points for post creation (metadata keyed by Tapestry content id)
-    await PointsService.awardPoints(userId, 'POST_CREATION', {
-      tapestry_content_id: (content as any).id,
-    })
+    // Persist Tapestry content id on local post
+    const tapestryContentId = (content as any).id
+    if (tapestryContentId) {
+      await prisma.post.update({
+        where: { id: post.id },
+        data: { tapestry_content_id: tapestryContentId },
+      })
+      result = { ...result, tapestry_content_id: tapestryContentId }
+    }
+
+    // Award extra points keyed by Tapestry id
+    try {
+      await PointsService.awardPoints(userId, 'POST_CREATION', {
+        post_id: post.id,
+        tapestry_content_id: tapestryContentId,
+      })
+    } catch (pointsError) {
+      console.error(
+        '[createPostV2] Error awarding Tapestry POST_CREATION points:',
+        pointsError,
+      )
+    }
 
     res.status(201).json({
       success: true,
       data: {
+        post: result,
         tapestry_content: content,
       },
     })
@@ -435,6 +598,84 @@ export const likePostV2 = async (
     res.status(500).json({
       success: false,
       error: error.message || 'An error occurred liking the post',
+    })
+  }
+}
+
+export const likeNodeV2 = async (
+  req: Request<{ node_id: string }>,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user!.id
+    const nodeId = req.params.node_id
+
+    if (!nodeId) {
+      res.status(400).json({
+        success: false,
+        error: 'node_id path parameter is required',
+      })
+      return
+    }
+
+    const { tapestryProfileId } = await ensureTapestryProfileForUser(userId)
+
+    await TapestryService.likeNode({
+      profileId: tapestryProfileId,
+      nodeId,
+    })
+
+    res.status(200).json({
+      success: true,
+      data: {
+        liked: true,
+        node_id: nodeId,
+      },
+    })
+  } catch (error: any) {
+    console.error('[likeNodeV2] Error:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'An error occurred liking the node',
+    })
+  }
+}
+
+export const unlikeNodeV2 = async (
+  req: Request<{ node_id: string }>,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user!.id
+    const nodeId = req.params.node_id
+
+    if (!nodeId) {
+      res.status(400).json({
+        success: false,
+        error: 'node_id path parameter is required',
+      })
+      return
+    }
+
+    const { tapestryProfileId } = await ensureTapestryProfileForUser(userId)
+
+    await TapestryService.unlikeNode({
+      profileId: tapestryProfileId,
+      nodeId,
+    })
+
+    res.status(200).json({
+      success: true,
+      data: {
+        unliked: true,
+        node_id: nodeId,
+      },
+    })
+  } catch (error: any) {
+    console.error('[unlikeNodeV2] Error:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'An error occurred unliking the node',
     })
   }
 }
@@ -625,6 +866,198 @@ export const getGlobalActivityV2 = async (
     res.status(500).json({
       success: false,
       error: error.message || 'An error occurred fetching global activity',
+    })
+  }
+}
+
+export const recomputeCredibilityScoresV2 = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const now = new Date()
+    await CredibilityService.recomputeAll(now)
+    res.status(200).json({
+      success: true,
+      data: {
+        recomputedAt: now.toISOString(),
+      },
+    })
+  } catch (error: any) {
+    console.error('[recomputeCredibilityScoresV2] Error:', error)
+    res.status(500).json({
+      success: false,
+      error:
+        error.message ||
+        'An error occurred recomputing credibility scores for all users',
+    })
+  }
+}
+
+export const getNodeLikersV2 = async (
+  req: Request<{ node_id: string }>,
+  res: Response,
+): Promise<void> => {
+  try {
+    const nodeId = req.params.node_id
+    if (!nodeId) {
+      res.status(400).json({
+        success: false,
+        error: 'node_id path parameter is required',
+      })
+      return
+    }
+
+    const result = await TapestryService.getNodeLikers(nodeId)
+
+    // Shape result into lightweight profile list when possible
+    const likers =
+      (result as any)?.profiles ??
+      (Array.isArray(result) ? result : (result as any)?.data ?? result)
+
+    res.status(200).json({
+      success: true,
+      data: {
+        node_id: nodeId,
+        likers,
+      },
+    })
+  } catch (error: any) {
+    console.error('[getNodeLikersV2] Error:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'An error occurred fetching node likers',
+    })
+  }
+}
+
+export const getTokenOwnersV2 = async (
+  req: Request<{ token_address: string }>,
+  res: Response,
+): Promise<void> => {
+  try {
+    const tokenAddress = req.params.token_address
+    if (!tokenAddress) {
+      res.status(400).json({
+        success: false,
+        error: 'token_address path parameter is required',
+      })
+      return
+    }
+
+    const owners = await TapestryService.getTokenOwners(tokenAddress)
+
+    res.status(200).json({
+      success: true,
+      data: owners,
+    })
+  } catch (error: any) {
+    console.error('[getTokenOwnersV2] Error:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'An error occurred fetching token owners',
+    })
+  }
+}
+
+const TAPESTRY_PLATFORM = 'trenches'
+
+function isSolMint(mint: string): boolean {
+  return mint === NATIVE_SOL_MINT || mint === WRAPPED_SOL_MINT
+}
+
+export const logTradeV2 = async (
+  req: Request<{}, {}, LogTradeV2Dto>,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user!.id
+
+    const { success, data, error } = await logTradeV2Schema.safeParseAsync(
+      req.body,
+    )
+
+    if (!success) {
+      res.status(400).json({
+        success: false,
+        error: error.message,
+      })
+      return
+    }
+
+    const authWallet =
+      (req.user as any).wallet?.address ?? req.user!.wallet?.address
+    const walletAddress = data.wallet_address ?? authWallet
+    if (!walletAddress) {
+      res.status(400).json({
+        success: false,
+        error: 'Wallet address is required for trade logging',
+      })
+      return
+    }
+
+    const { tapestryProfileId } = await ensureTapestryProfileForUser(userId)
+
+    const inputAmountNum = parseFloat(data.amount_in)
+    const outputAmountNum = parseFloat(data.amount_out)
+    const timestamp = Date.now()
+
+    const tradeType: 'buy' | 'sell' =
+      data.trade_type ??
+      (isSolMint(data.token_in_mint) ? 'sell' : 'buy')
+
+    const usdIn = data.usd_value_in ?? 0
+    const usdOut = data.usd_value_out ?? 0
+    const solPrice = data.sol_price
+    let inputValueSOL = data.input_value_sol
+    let outputValueSOL = data.output_value_sol
+    if (
+      (inputValueSOL == null || outputValueSOL == null) &&
+      typeof solPrice === 'number' &&
+      solPrice > 0
+    ) {
+      if (inputValueSOL == null && usdIn >= 0)
+        inputValueSOL = usdIn / solPrice
+      if (outputValueSOL == null && usdOut >= 0)
+        outputValueSOL = usdOut / solPrice
+    }
+    if (inputValueSOL == null) inputValueSOL = 0
+    if (outputValueSOL == null) outputValueSOL = 0
+
+    await TapestryService.logTrade({
+      transactionSignature: data.tx_signature,
+      walletAddress: data.wallet_address ?? walletAddress,
+      inputMint: data.token_in_mint,
+      outputMint: data.token_out_mint,
+      inputAmount: Number.isFinite(inputAmountNum) ? inputAmountNum : 0,
+      outputAmount: Number.isFinite(outputAmountNum) ? outputAmountNum : 0,
+      inputValueSOL,
+      outputValueSOL,
+      timestamp,
+      tradeType,
+      platform: TAPESTRY_PLATFORM,
+      profileId: tapestryProfileId,
+      inputValueUSD: data.usd_value_in,
+      outputValueUSD: data.usd_value_out,
+      solPrice: data.sol_price,
+      source: data.source,
+      slippage: data.slippage,
+      priorityFee: data.priority_fee,
+      sourceWallet: data.source_wallet,
+      sourceTransactionId: data.source_transaction_id,
+    })
+
+    res.status(201).json({
+      success: true,
+      data: {
+        logged: true,
+      },
+    })
+  } catch (err: any) {
+    console.error('[logTradeV2] Error:', err)
+    res.status(500).json({
+      success: false,
+      error: err.message || 'An error occurred logging the trade',
     })
   }
 }
