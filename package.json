@@ -8,9 +8,7 @@
     "dev": "pnpx tsx watch src/index.ts",
     "build": "rimraf dist && npx prisma generate && npx tsc && tsc-alias",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy": "gcloud app deploy app.yaml",
-    "android": "expo run:android",
-    "ios": "expo run:ios"
+    "deploy": "gcloud app deploy app.yaml"
   },
   "keywords": [],
   "author": "",

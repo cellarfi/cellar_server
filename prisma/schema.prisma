@@ -470,6 +470,15 @@ model Report {
   @@map("reports")
 }
 
+model PilaWaitlist {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  created_at DateTime @default(now()) @db.Timestamptz
+
+  @@index([created_at])
+  @@map("pila_waitlist")
+}
+
 enum ReportType {
   POST
   USER

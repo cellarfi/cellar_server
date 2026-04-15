@@ -20,6 +20,7 @@ import tokenRoutes from './routes/token.route'
 import uploadRoutes from './routes/upload.route'
 import usersRoutes from './routes/users.route'
 import walletRoutes from './routes/wallet.route'
+import waitlistRoutes from './routes/waitlist.route'
 
 export const injectRoutes = (app: express.Express) => {
   app.use('/api/wallet', walletRoutes)
@@ -44,4 +45,5 @@ export const injectRoutes = (app: express.Express) => {
   app.use('/api/upload', uploadRoutes)
   app.use('/api/notifications', notificationRoutes)
   app.use('/api/moderation', moderationRoutes)
+  app.use('/api/waitlist', waitlistRoutes)
 }
